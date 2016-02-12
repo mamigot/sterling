@@ -1,0 +1,4 @@
+storage/volumes/*.txt
+
+.DS_Store
+*.pyc
