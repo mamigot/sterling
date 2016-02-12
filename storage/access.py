@@ -112,7 +112,7 @@ class Post:
 
         self.text = text
         self.active = active
-        self.timestamp = timestamp or int(time.time())
+        self.timestamp = int(timestamp) or int(time.time())
         self.username = username
         self.post_type = post_type
 
