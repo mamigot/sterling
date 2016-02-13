@@ -22,30 +22,11 @@ user.is_following(friend)
 user.is_followed_by(friend)
 """
 
+import os
 import time
-from .config import FILE_COUNTS, FIELD_SIZES
+from .config import STORAGE_ROOT_PATH, STORED_FILE_TYPES, FIELD_SIZES
+from . import utils
 
-
-def pad(value, field_size, filler_char='\0'):
-    """Pad value with as many filler_chars as field_size requires"""
-    extra_count = field_size - len(value)
-
-    if extra_count < 0:
-        raise ValueError('Given value exceeds specified field_size')
-
-    return (filler_char * extra_count) + value
-
-def unpad(value, filler_char='\0'):
-    """Remove all starting filler_chars from value"""
-    bad_count = 0
-
-    for char in value:
-        if char == filler_char:
-            bad_count += 1
-        else:
-            break
-
-    return value[bad_count:]
 
 class User:
     def __init__(self, username, password=None):
@@ -61,15 +42,29 @@ class User:
             raise AttributeError("Provide the user's password.")
 
     def save_post(self, post):
-        serialized_post = post.serialize()
+        # Add the required attributes to the post
+        # Serialize it
+        # Append it to the correct files
+        pass
 
     def delete_post(self, post):
         pass
 
-    def get_timeline_posts(self, most_recent=True, limit=20, start_page=0):
-        pass
+    def get_timeline_posts(self, limit=20):
+        timeline = []
+        reader = utils.read_lines_backwards('test.txt', line_size=Post.BYTES_PER_POST)
 
-    def get_profile_posts(self, most_recent=True, limit=20, start_page=0):
+        for serialized_posts in reader:
+            for serialized_post in serialized_posts:
+                if len(timeline) < limit:
+                    post = Post.deserialize(serialized_post)
+
+                    if post.active and post.post_type == 't' and post.username == self.username:
+                        timeline.append(post)
+                else:
+                    return timeline
+
+    def get_profile_posts(self, limit=20):
         pass
 
     def follow(self, friend):
@@ -79,10 +74,10 @@ class User:
     def unfollow(self, friend):
         pass
 
-    def get_followers(self, most_recent=True, limit=20, start_page=0):
+    def get_followers(self, limit=20):
         pass
 
-    def get_friends(self, most_recent=True, limit=20, start_page=0):
+    def get_friends(self, limit=20):
         pass
 
     def is_following(self, friend):
@@ -101,11 +96,14 @@ class User:
             raise ValueError('Type of the file is unknown.')
 
         numeric_hash = sum(ord(c) for c in self.username)
-        filenumber = numeric_hash % FILE_COUNTS.get(filetype)
+        filenumber = numeric_hash % STORED_FILE_TYPES[filetype]
 
         return '%s_%d.txt' % (filetype, filenumber)
 
 class Post:
+    """Number of bytes that a serialized post takes up"""
+    BYTES_PER_POST = 17 + FIELD_SIZES['username'] + FIELD_SIZES['post_text']
+
     def __init__(self, text, active=True, timestamp=None, username=None, post_type=None):
         if post_type and post_type not in ['p', 't']:
             raise ValueError('post_type: either profile ("p") or timeline ("t")')
@@ -128,10 +126,10 @@ class Post:
             raise ValueError('Length of the timestamp must be 10')
 
         active = '1' if self.active else '0'
-        username = pad(self.username, FIELD_SIZES['username'])
-        text = pad(self.text, FIELD_SIZES['post_text'])
+        username = utils.pad(self.username, FIELD_SIZES['username'])
+        text = utils.pad(self.text, FIELD_SIZES['post_text'])
 
-        return '%s_%s_%s_%s_%s' % (active, self.post_type, timestamp, username, text)
+        return '%s_%s_%s_%s_%s\n' % (active, self.post_type, timestamp, username, text)
 
     @classmethod
     def deserialize(self, serialized):
@@ -142,11 +140,11 @@ class Post:
         start_idx_username = 16
         end_idx_username = 15 + FIELD_SIZES['username']
 
-        username = unpad(serialized[start_idx_username:end_idx_username])
+        username = utils.unpad(serialized[start_idx_username:end_idx_username])
 
         start_idx_text = 17 + FIELD_SIZES['username']
         end_idx_text = 16 + FIELD_SIZES['username'] + FIELD_SIZES['post_text']
 
-        text = unpad(serialized[start_idx_text:end_idx_text])
+        text = utils.unpad(serialized[start_idx_text:end_idx_text])
 
         return Post(text, active, timestamp, username, post_type)
