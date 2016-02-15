@@ -1,0 +1,14 @@
+{% extends '__base.html' %}
+{% import '_macros.html' as macros %}
+
+{% block title %}Profile{% endblock %}
+{% include '_header.html' %}
+
+{% block heading %}
+  Profile: <em>{{ secondary_username or "yours!"}}</em>
+{% endblock %}
+
+{% block content %}
+  <hr><hr>
+  {{ macros.show_posts(posts) }}
+{% endblock %}

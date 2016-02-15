@@ -1,0 +1,12 @@
+{% extends '__base.html' %}
+{% import '_macros.html' as macros %}
+
+{% block title %}Timeline{% endblock %}
+{% include '_header.html' %}
+
+{% block heading %}Timeline{% endblock %}
+
+{% block content %}
+  <hr><hr>
+  {{ macros.show_posts(posts) }}
+{% endblock %}

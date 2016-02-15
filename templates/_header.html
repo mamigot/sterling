@@ -1,0 +1,18 @@
+{% if username %}
+  <span style="display:inline">Hey, <em>{{ username }}</em> &nbsp;</span>
+
+  <a href="{{ url_for('timeline') }}"><input type="button" value="Timeline"></a>
+  <a href="{{ url_for('profile') }}"><input type="button" value="Profile"></a>
+
+  <form name="signout" action="{{ url_for('signout') }}" method="post" style="display:inline;">
+    <input type="submit" value="Sign Out">
+  </form>
+
+  <br><br>
+
+  <form action="{{ url_for('post' )}}" method="post" style="display:inline;">
+    <input type="text" name="post" size="140" maxlength="140" placeholder="Write a new post">
+    <input type="submit" value="Save">
+  </form>
+  <hr>
+{% endif %}

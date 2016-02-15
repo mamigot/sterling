@@ -1,0 +1,11 @@
+{% macro show_posts(posts) %}
+  {% for post in posts %}
+    <em>
+      <a href="{{ url_for('profile', secondary_username=post.username) }}">{{ post.username }}</a>,
+      <small>{{ post.timestamp }}</small>
+    </em>
+
+    <h4>{{ post.text }}</h4>
+    <hr>
+  {% endfor %}
+{% endmacro %}
