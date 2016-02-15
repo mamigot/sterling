@@ -33,13 +33,15 @@ class User:
         self.username = username
         self.password = password
 
-    def save_login_data(self):
+    def save_credentials(self):
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-    def verify_login_data(self):
+    def verify_credentials(self):
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
+
+        return True
 
     def save_post(self, post):
         # Add the required attributes to the post
@@ -101,7 +103,7 @@ class User:
         return '%s_%d.txt' % (filetype, filenumber)
 
 class Post:
-    """Number of bytes that a serialized post takes up"""
+    """Number of bytes that a serialized post takes up (including '\n')"""
     BYTES_PER_POST = 17 + FIELD_SIZES['username'] + FIELD_SIZES['post_text']
 
     def __init__(self, text, active=True, timestamp=None, username=None, post_type=None):
