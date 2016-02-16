@@ -25,8 +25,19 @@ def register():
 
     return render_template('register.html')
 
+@app.route('/deactivate', methods=['GET', 'POST'])
+def deactivate():
+    if request.method == 'POST':
+        user = storage.User(request.form['username'], request.form['password'])
+
+        if user.verify_credentials():
+            user.delete_credentials()
+            return redirect(url_for('register'))
+
+    return render_template('deactivate.html')
+
 @app.route('/login', methods=['GET', 'POST'])
-def login():
+def log_in():
     if request.method == 'POST':
         user = storage.User(request.form['username'], request.form['password'])
 
@@ -38,9 +49,9 @@ def login():
 
 @app.route('/signout', methods=['GET', 'POST'])
 @login_required
-def signout():
+def sign_out():
     session.pop('username')
-    return redirect(url_for('login'))
+    return redirect(url_for('log_in'))
 
 @app.route('/')
 @app.route('/timeline', methods=['GET'])

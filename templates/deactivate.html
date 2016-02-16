@@ -1,0 +1,11 @@
+{% extends '__base.html' %}
+{% import '_forms.html' as forms %}
+
+{% block title %}Deactivate Account{% endblock %}
+{% block heading %}Deactivate your Account{% endblock %}
+
+{% block content %}
+  {{ forms.deactivate() }}
+
+  <br><hr>
+{% endblock %}

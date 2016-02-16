@@ -7,15 +7,23 @@
 {% endmacro %}
 
 {% macro log_in() %}
-  <form name="login" action="{{ url_for('login') }}" method="post">
+  <form name="log_in" action="{{ url_for('log_in') }}" method="post">
     <input type="username" name="username" placeholder="Username" required>
     <input type="password" name="password" placeholder="Password" required>
     <input type="submit" value="Login">
   </form>
 {% endmacro %}
 
+{% macro deactivate() %}
+  <form name="deactivate" action="{{ url_for('deactivate') }}" method="post">
+    <input type="username" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="submit" value="Deactivate account">
+  </form>
+{% endmacro %}
+
 {% macro sign_out() %}
-  <form name="signout" action="{{ url_for('signout') }}" method="post" style="display:inline;">
+  <form name="sign_out" action="{{ url_for('sign_out') }}" method="post" style="display:inline;">
     <input type="submit" value="Sign Out">
   </form>
 {% endmacro %}

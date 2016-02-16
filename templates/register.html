@@ -8,5 +8,7 @@
   {{ forms.register() }}
 
   <br><hr>
-  Already have an account? <a href="{{ url_for('login') }}">Log in.</a>
+  Already have an account? <a href="{{ url_for('log_in') }}">Log in.</a>
+  <br>
+  <a href="{{ url_for('deactivate') }}">Delete your account</a> instead.
 {% endblock %}
