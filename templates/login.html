@@ -1,14 +1,11 @@
 {% extends '__base.html' %}
+{% import '_forms.html' as forms %}
 
 {% block title %}Log in{% endblock %}
 {% block heading %}Log in{% endblock %}
 
 {% block content %}
-  <form name="login" action="{{ url_for('login') }}" method="post">
-    <input type="username" name="username" placeholder="Username" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <input type="submit" value="Login">
-  </form>
+  {{ forms.log_in() }}
 
   <br><hr>
   <a href="{{ url_for('register') }}">Create an account</a>

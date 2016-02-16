@@ -1,3 +1,5 @@
+{% import '_forms.html' as forms %}
+
 {% macro show_posts(posts, deleteable) %}
   {% for post in posts %}
     <em>
@@ -5,15 +7,9 @@
       <small>{{ post.timestamp }}</small>
     </em>
 
-    {% if deleteable %}
-      <form name="deletepost" action="{{ url_for('post') }}" method="post" style="display:inline;">
-        <input type="text" name="timestamp" value={{ post.timestamp }} hidden>
-        <input type="submit" name="deletepost" value="Delete">
-      </form>
-    {% endif %}
+    {% if deleteable %}{{ forms.delete_post(post.timestamp) }}{% endif %}
 
     <h4>{{ post.text }}</h4>
-
     <hr>
   {% endfor %}
 {% endmacro %}

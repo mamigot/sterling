@@ -1,5 +1,5 @@
 {% extends '__base.html' %}
-{% import '_macros.html' as macros %}
+{% import '_utils.html' as utils %}
 
 {% block title %}Followers{% endblock %}
 {% include '_header.html' %}
@@ -8,5 +8,5 @@
 
 {% block content %}
   <hr><hr>
-  {{ macros.show_users(followers) }}
+  {{ utils.show_users(followers) }}
 {% endblock %}

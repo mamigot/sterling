@@ -1,0 +1,49 @@
+{% macro register() %}
+  <form name="register" action="{{ url_for('register') }}" method="post">
+    <input type="username" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="submit" value="Register">
+  </form>
+{% endmacro %}
+
+{% macro log_in() %}
+  <form name="login" action="{{ url_for('login') }}" method="post">
+    <input type="username" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="submit" value="Login">
+  </form>
+{% endmacro %}
+
+{% macro sign_out() %}
+  <form name="signout" action="{{ url_for('signout') }}" method="post" style="display:inline;">
+    <input type="submit" value="Sign Out">
+  </form>
+{% endmacro %}
+
+{% macro save_post() %}
+  <form name="savepost" action="{{ url_for('post' )}}" method="post" style="display:inline;">
+    <input type="text" name="text" size="140" maxlength="140" placeholder="Write a new post">
+    <input type="submit" name="savepost" value="Save">
+  </form>
+{% endmacro %}
+
+{% macro delete_post(timestamp) %}
+  <form name="deletepost" action="{{ url_for('post') }}" method="post" style="display:inline;">
+    <input type="text" name="timestamp" value={{ timestamp }} hidden>
+    <input type="submit" name="deletepost" value="Delete">
+  </form>
+{% endmacro %}
+
+{% macro follow(secondary_username) %}
+  <form name="follow" action="{{ url_for('friends')}}" method="post" style="display:inline;">
+    <input type="text" name="secondary_username" value={{ secondary_username }} hidden>
+    <input type="submit" name="follow" value="Follow">
+  </form>
+{% endmacro %}
+
+{% macro unfollow(secondary_username) %}
+  <form name="unfollow" action="{{ url_for('friends')}}" method="post" style="display:inline;">
+    <input type="text" name="secondary_username" value={{ secondary_username }} hidden>
+    <input type="submit" name="unfollow" value="Unfollow">
+  </form>
+{% endmacro %}

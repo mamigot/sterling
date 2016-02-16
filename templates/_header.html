@@ -1,4 +1,6 @@
 {% if username %}
+  {% import '_forms.html' as forms %}
+
   <span style="display:inline">Hey, <em>{{ username }}</em> &nbsp;</span>
 
   <a href="{{ url_for('timeline') }}"><input type="button" value="Timeline"></a>
@@ -6,15 +8,9 @@
   <a href="{{ url_for('friends') }}"><input type="button" value="Friends"></a>
   <a href="{{ url_for('followers') }}"><input type="button" value="Followers"></a>
 
-  <form name="signout" action="{{ url_for('signout') }}" method="post" style="display:inline;">
-    <input type="submit" value="Sign Out">
-  </form>
-
+  {{ forms.sign_out() }}
   <br><br>
+  {{ forms.save_post() }}
 
-  <form name="savepost" action="{{ url_for('post' )}}" method="post" style="display:inline;">
-    <input type="text" name="text" size="140" maxlength="140" placeholder="Write a new post">
-    <input type="submit" name="savepost" value="Save">
-  </form>
   <hr>
 {% endif %}

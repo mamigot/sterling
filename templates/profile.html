@@ -1,5 +1,6 @@
 {% extends '__base.html' %}
-{% import '_macros.html' as macros %}
+{% import '_utils.html' as utils %}
+{% import '_forms.html' as forms %}
 
 {% block title %}Profile{% endblock %}
 {% include '_header.html' %}
@@ -12,16 +13,9 @@
     </em>
 
     {% if is_following %}
-      <form name="unfollow" action="{{ url_for('friends')}}" method="post" style="display:inline;">
-        <input type="text" name="secondary_username" value={{ secondary_username }} hidden>
-        <input type="submit" name="unfollow" value="Unfollow">
-      </form>
-
+      {{ forms.unfollow(secondary_username) }}
     {% else %}
-      <form name="follow" action="{{ url_for('friends')}}" method="post" style="display:inline;">
-        <input type="text" name="secondary_username" value={{ secondary_username }} hidden>
-        <input type="submit" name="follow" value="Follow">
-      </form>
+      {{ forms.follow(secondary_username) }}
     {% endif %}
 
   {% else %}
@@ -31,8 +25,6 @@
 {% endblock %}
 
 {% block content %}
-
-
   <hr><hr>
-  {{ macros.show_posts(posts, deleteable=True) }}
+  {{ utils.show_posts(posts, deleteable=True) }}
 {% endblock %}
