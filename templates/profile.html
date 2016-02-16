@@ -5,10 +5,34 @@
 {% include '_header.html' %}
 
 {% block heading %}
-  Profile: <em>{{ secondary_username or "yours!"}}</em>
+  {% if secondary_username %}
+    <em>
+      {{ secondary_username }}
+      {% if is_followed_by %}(follows you){% endif %}
+    </em>
+
+    {% if is_following %}
+      <form name="unfollow" action="{{ url_for('friends')}}" method="post" style="display:inline;">
+        <input type="text" name="secondary_username" value={{ secondary_username }} hidden>
+        <input type="submit" name="unfollow" value="Unfollow">
+      </form>
+
+    {% else %}
+      <form name="follow" action="{{ url_for('friends')}}" method="post" style="display:inline;">
+        <input type="text" name="secondary_username" value={{ secondary_username }} hidden>
+        <input type="submit" name="follow" value="Follow">
+      </form>
+    {% endif %}
+
+  {% else %}
+    <em>You!</em>
+
+  {% endif %}
 {% endblock %}
 
 {% block content %}
+
+
   <hr><hr>
-  {{ macros.show_posts(posts) }}
+  {{ macros.show_posts(posts, deleteable=True) }}
 {% endblock %}

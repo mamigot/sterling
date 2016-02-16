@@ -3,6 +3,8 @@
 
   <a href="{{ url_for('timeline') }}"><input type="button" value="Timeline"></a>
   <a href="{{ url_for('profile') }}"><input type="button" value="Profile"></a>
+  <a href="{{ url_for('friends') }}"><input type="button" value="Friends"></a>
+  <a href="{{ url_for('followers') }}"><input type="button" value="Followers"></a>
 
   <form name="signout" action="{{ url_for('signout') }}" method="post" style="display:inline;">
     <input type="submit" value="Sign Out">
@@ -10,9 +12,9 @@
 
   <br><br>
 
-  <form action="{{ url_for('post' )}}" method="post" style="display:inline;">
-    <input type="text" name="post" size="140" maxlength="140" placeholder="Write a new post">
-    <input type="submit" value="Save">
+  <form name="savepost" action="{{ url_for('post' )}}" method="post" style="display:inline;">
+    <input type="text" name="text" size="140" maxlength="140" placeholder="Write a new post">
+    <input type="submit" name="savepost" value="Save">
   </form>
   <hr>
 {% endif %}

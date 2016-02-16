@@ -1,12 +1,12 @@
 {% extends '__base.html' %}
 {% import '_macros.html' as macros %}
 
-{% block title %}Timeline{% endblock %}
+{% block title %}Followers{% endblock %}
 {% include '_header.html' %}
 
-{% block heading %}Timeline{% endblock %}
+{% block heading %}Followers{% endblock %}
 
 {% block content %}
   <hr><hr>
-  {{ macros.show_posts(posts, deleteable=False) }}
+  {{ macros.show_users(followers) }}
 {% endblock %}

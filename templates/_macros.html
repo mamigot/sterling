@@ -1,11 +1,28 @@
-{% macro show_posts(posts) %}
+{% macro show_posts(posts, deleteable) %}
   {% for post in posts %}
     <em>
       <a href="{{ url_for('profile', secondary_username=post.username) }}">{{ post.username }}</a>,
       <small>{{ post.timestamp }}</small>
     </em>
 
+    {% if deleteable %}
+      <form name="deletepost" action="{{ url_for('post') }}" method="post" style="display:inline;">
+        <input type="text" name="timestamp" value={{ post.timestamp }} hidden>
+        <input type="submit" name="deletepost" value="Delete">
+      </form>
+    {% endif %}
+
     <h4>{{ post.text }}</h4>
+
+    <hr>
+  {% endfor %}
+{% endmacro %}
+
+{% macro show_users(usernames) %}
+  {% for username in usernames %}
+    <em>
+      <a href="{{ url_for('profile', secondary_username=username) }}">{{ username }}</a>
+    </em>
     <hr>
   {% endfor %}
 {% endmacro %}
