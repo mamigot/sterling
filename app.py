@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import Flask, g, session, render_template, request, redirect, url_for
-import storage
+from storage import User, Post
 
 app = Flask(__name__)
 
@@ -15,7 +15,7 @@ def login_required(f):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        user = storage.User(request.form['username'], request.form['password'])
+        user = User(request.form['username'], request.form['password'])
         user.save_credentials()
 
         # proceed once we know the credentials are stored
@@ -28,7 +28,7 @@ def register():
 @app.route('/deactivate', methods=['GET', 'POST'])
 def deactivate():
     if request.method == 'POST':
-        user = storage.User(request.form['username'], request.form['password'])
+        user = User(request.form['username'], request.form['password'])
 
         if user.verify_credentials():
             user.delete_credentials()
@@ -39,7 +39,7 @@ def deactivate():
 @app.route('/login', methods=['GET', 'POST'])
 def log_in():
     if request.method == 'POST':
-        user = storage.User(request.form['username'], request.form['password'])
+        user = User(request.form['username'], request.form['password'])
 
         if user.verify_credentials():
             session['username'] = user.username
@@ -57,7 +57,7 @@ def sign_out():
 @app.route('/timeline', methods=['GET'])
 @login_required
 def timeline():
-    user = storage.User(username=session.get('username'))
+    user = User(username=session.get('username'))
     posts = user.get_timeline_posts()
     return render_template('timeline.html', username=user.username, posts=posts)
 
@@ -65,11 +65,11 @@ def timeline():
 @app.route('/profile/<secondary_username>', methods=['GET'])
 @login_required
 def profile(secondary_username=None):
-    user = storage.User(username=session.get('username'))
+    user = User(username=session.get('username'))
 
     if secondary_username:
         # Fetch the secondary user's posts and the relationship to the main user
-        secondary_user = storage.User(username=secondary_username)
+        secondary_user = User(username=secondary_username)
         posts = secondary_user.get_profile_posts()
 
         is_following = user.is_following(secondary_user)
@@ -87,7 +87,7 @@ def profile(secondary_username=None):
 @app.route('/followers', methods=['GET'])
 @login_required
 def followers():
-    user = storage.User(username=session.get('username'))
+    user = User(username=session.get('username'))
     follower_usernames = [f.username for f in user.get_followers()]
 
     return render_template('followers.html', username=user.username,
@@ -96,7 +96,7 @@ def followers():
 @app.route('/friends', methods=['GET', 'POST'])
 @login_required
 def friends():
-    user = storage.User(username=session.get('username'))
+    user = User(username=session.get('username'))
 
     if request.method == 'GET':
         friend_usernames = [f.username for f in user.get_friends()]
@@ -105,7 +105,7 @@ def friends():
             friends=friend_usernames)
 
     elif request.method == 'POST':
-        secondary_user = storage.User(username=request.form.get('secondary_username'))
+        secondary_user = User(username=request.form.get('secondary_username'))
 
         if request.form.get('follow'):
             user.follow(secondary_user)
@@ -117,10 +117,10 @@ def friends():
 @app.route('/post', methods=['POST'])
 @login_required
 def post():
-    user = storage.User(username=session.get('username'))
+    user = User(username=session.get('username'))
 
     if request.form.get('savepost'):
-        post = storage.Post(text=request.form.get('text'))
+        post = Post(text=request.form.get('text'))
         user.save_post(post)
 
     elif request.form.get('deletepost'):
