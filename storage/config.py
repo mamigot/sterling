@@ -3,10 +3,13 @@ import os, subprocess
 
 STORAGE_ROOT_PATH = os.path.join(os.path.dirname(__file__), 'volumes')
 
+# Optimize these values for the application
+# (more files --> faster reads and writes but more wasted space)
 STORED_FILE_TYPES = {
-    'login': 5,
-    'posts': 5,
-    'followers': 5
+    'user_accounts': 2,
+    'posts_timeline': 2,
+    'posts_profile':2,
+    'relations': 2
 }
 
 FIELD_SIZES = {
