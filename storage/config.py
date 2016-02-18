@@ -6,16 +6,16 @@ STORAGE_ROOT_PATH = os.path.join(os.path.dirname(__file__), 'volumes')
 # Optimize these values for the application
 # (more files --> faster reads and writes but more wasted space)
 STORED_FILE_TYPES = {
-    'user_accounts': 2,
-    'posts_timeline': 2,
-    'posts_profile':2,
-    'relations': 2
+    'CREDENTIALS': 2,
+    'POST_TIMELINE': 2,
+    'POST_PROFILE': 2,
+    'RELATION': 2
 }
 
 FIELD_SIZES = {
-    'username': 20,
-    'password': 20,
-    'text': 140,
+    'USERNAME': 20,
+    'PASSWORD': 20,
+    'TEXT': 140,
 }
 
 def initiate_storage():
