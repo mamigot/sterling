@@ -13,9 +13,9 @@ STORED_FILE_TYPES = {
 }
 
 FIELD_SIZES = {
-    'post_text': 140,
     'username': 20,
-    'password': 20
+    'password': 20,
+    'text': 140,
 }
 
 def initiate_storage():
