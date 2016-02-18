@@ -29,71 +29,195 @@ from . import utils
 
 
 class User:
+    """
+    Serialized field values for all types of data:
+    - <active>:
+        - "1" if the entry is valid/relevant, "0" otherwise
+        - Size: 1 byte
+    - <username>:
+        - User's username, padded to hold the max. number of bytes
+        - Size: see FIELD_SIZES
+    - <timestamp>
+        - Timestamp of an event, using a format like that of str(int(time.time()))
+        - Size: 10 bytes
+    - <password>
+        - User's password, padded to hold the max. number of bytes
+        - Size: see FIELD_SIZES
+    - <text>
+        - Text content of the post, padded to hold the max. number of bytes
+        - Size: see FIELD_SIZES
+    - <direction>
+        - Relevant for relations. Either ">" (left-to-right) or "<" (right-to-left)
+        - Size: 1 byte
+    - <username_b>
+        - Relevant for relations (same as <username>)
+
+    Serialized strings' formats:
+    - User accounts
+        - <active><username><password>
+    - Posts (profile and timeline)
+        - <active><username><timestamp><text>
+    - Relations
+        - <active><username><direction><username_b>
+    """
+
     def __init__(self, username, password=None):
         self.username = username
         self.password = password
 
     def save_credentials(self):
+        """
+        Find the relevant file with the accounts and check if there's an entry
+        with that username marked "inactive". If so, make it active and overwrite
+        the password field with the new value.
+
+        If the relevant file does not contain a match for that username, serialize
+        the login data (active, username, password) and append it to said file.
+        """
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
     def verify_credentials(self):
+        """
+        Find the relevant file with the accounts and return True iff there's an
+        entry marked "active" that matches the user's username and password.
+        Otherwise, return False.
+        """
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-        return True
+    def delete_credentials(self):
+        """
+        Find the relevant file with the accounts and, if there is a match for
+        the user's username and password, mark it as "inactive" (overwrite this
+        byte).
+        """
+        if not hasattr(self, 'password'):
+            raise AttributeError("Provide the user's password.")
 
     def save_post(self, post):
-        # Add the required attributes to the post
-        # Serialize it
-        # Append it to the correct files
+        """
+        When a user creates a post, it'll be saved under his profile file as well
+        as under all of his followers' timelines'. This makes writes slow but
+        reads fast. Note: the fully-serialized post is copied across followers'
+        files (not just references, which would prompt unnecessary I/O reads).
+
+        This function serializes the post and appends it to the following:
+        - The author's "profile" file
+        - Each followers' "timeline" file
+        """
         pass
 
-    def delete_post(self, post):
+    def delete_post(self, timestamp):
+        """
+        Read self.save_post() to understand how posts are saved first.
+
+        Each post is identified by its user and the timestamp (a single user
+        cannot write more than one post at once).
+
+        This function marks as "inactive" entries in the following:
+        - The author's "profile" file
+        - Each followers' "timeline" file
+
+        Marking a single post as "inactive" in a given file:
+        - Search over the file starting from the end (the likelihood that older
+        posts are interacted with is lower than for newer posts)
+        - If the first three fields' (active, timestamp, username) values match
+        the user input (for active = True), then the active byte is overwritten
+        to denote "False" and the function returns.
+
+        Matching the provided values (active, username, timestamp) to a given
+        entry in the file:
+        - Serialize the provided values as a string according to the format
+        with which posts are serialized.
+        - Match this string to each post's serialized string (will be the first
+        characters).
+        """
         pass
 
     def get_timeline_posts(self, limit=20):
-        timeline = []
-        reader = utils.read_lines_backwards('test.txt', line_size=Post.BYTES_PER_POST)
+        """
+        Iterate over the entries from the given user's timeline posts file from
+        the back and return the first `limit` matches that are marked as "active".
 
-        for serialized_posts in reader:
-            for serialized_post in serialized_posts:
-                if len(timeline) < limit:
-                    post = Post.deserialize(serialized_post)
-
-                    if post.active and post.post_type == 't' and post.username == self.username:
-                        timeline.append(post)
-                else:
-                    return timeline
+        Matching the provided values (active, username) to a given entry in the
+        file:
+        - Serialize the provided values as a string according to the format
+        with which posts are serialized.
+        - Match this string to each post's serialized string (will be the first
+        characters).
+        """
+        pass
 
     def get_profile_posts(self, limit=20):
+        """
+        Iterate over the entries from the given user's profile posts file from
+        the back and return the first `limit` matches that are marked as "active".
+
+        Matching the provided values (active, username) to a given entry in the
+        file:
+        - Serialize the provided values as a string according to the format
+        with which posts are serialized.
+        - Match this string to each post's serialized string (will be the first
+        characters).
+        """
         pass
 
     def follow(self, friend):
-        """Append an active relation to the end of the file"""
+        """
+        Save the user's "follow" under his "relations" file, as well as in
+        his friend's file (serialized differently).
+
+        Before modifying a relation, iterate over the relevant file to make
+        sure that it has not existed in the past (this entry would now be
+        marked as "inactive"). If this happens, mark said entry to "active"
+        and end.
+
+        If the user's relation to his friend is new (would know after iterating
+        through the relevant file), serialize it and append it to that file.
+        """
         pass
 
     def unfollow(self, friend):
+        """
+        Read self.follow() to understand how relations are recorded.
+
+        Need to mark as inactive the user's outbound link (direction ">") as
+        well as the relation's inbound link (direction "<"). These will most
+        likely be stored in different files.
+
+        Find the relevant file with the relations and, if there is a match for
+        the user's and the friend's usernames, mark it as "inactive" (overwrite
+        this byte).
+        """
         pass
 
     def get_followers(self, limit=20):
+        """
+        (Followers are users who follow this one)
+
+        Iterate over the user's relations file and return all which are
+        active and contain an inbound link (direction "<").
+        """
         pass
 
     def get_friends(self, limit=20):
+        """
+        (Friends are users who this one follows)
+
+        Iterate over the user's relations file and return all which are
+        active and contain an outbound link (direction ">").
+        """
         pass
 
     def is_following(self, friend):
-        """Stick with the first relevant relation from the end of the file"""
+        """
+        Iterate over the user's relations file and return True if the user
+        is following his friend –marked by an outbound link (direction ">").
+        """
         pass
 
-    def is_followed_by(self, friend):
-        """Stick with the first relevant relation from the end of the file"""
-        pass
-
-    def serialize_relation(self, friend, active=True):
-        pass
-
-    def _hash_to_filename(self, filetype):
+    def _stored_filename_mapping(self, filetype):
         if filetype not in FILETYPE_MAXCOUNT:
             raise ValueError('Type of the file is unknown.')
 
@@ -103,50 +227,7 @@ class User:
         return '%s_%d.txt' % (filetype, filenumber)
 
 class Post:
-    """Number of bytes that a serialized post takes up (including '\n')"""
-    BYTES_PER_POST = 17 + FIELD_SIZES['username'] + FIELD_SIZES['post_text']
-
-    def __init__(self, text, active=True, timestamp=None, username=None, post_type=None):
-        if post_type and post_type not in ['p', 't']:
-            raise ValueError('post_type: either profile ("p") or timeline ("t")')
-
+    def __init__(self, text, username=None, timestamp=None):
         self.text = text
-        self.active = active
-        self.timestamp = int(timestamp) or int(time.time())
         self.username = username
-        self.post_type = post_type
-
-    def serialize(self):
-        # Check that all relevant properties are defined (neither None nor '')
-        for param in filter(lambda param: getattr(self, param) in [None, ''],
-            ('active', 'timestamp', 'username', 'post_type')):
-            raise ValueError('"%s" cannot be undefined' % param)
-
-        timestamp = str(self.timestamp)
-
-        if len(timestamp) != 10:
-            raise ValueError('Length of the timestamp must be 10')
-
-        active = '1' if self.active else '0'
-        username = utils.pad(self.username, FIELD_SIZES['username'])
-        text = utils.pad(self.text, FIELD_SIZES['post_text'])
-
-        return '%s_%s_%s_%s_%s\n' % (active, self.post_type, timestamp, username, text)
-
-    @classmethod
-    def deserialize(self, serialized):
-        active = True if serialized[0] == '1' else False
-        post_type = serialized[2]
-        timestamp = serialized[4:14]
-
-        start_idx_username = 16
-        end_idx_username = 15 + FIELD_SIZES['username']
-
-        username = utils.unpad(serialized[start_idx_username:end_idx_username])
-
-        start_idx_text = 17 + FIELD_SIZES['username']
-        end_idx_text = 16 + FIELD_SIZES['username'] + FIELD_SIZES['post_text']
-
-        text = utils.unpad(serialized[start_idx_text:end_idx_text])
-
-        return Post(text, active, timestamp, username, post_type)
+        self.timestamp = timestamp
