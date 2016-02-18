@@ -25,27 +25,20 @@ def read_chunks_backwards(filepath, chunk_size):
             else:
                 break
 
-def read_lines_backwards(filepath, line_size):
+def read_entries_backwards(filepath, entry_size):
     desired_chunk = 4096
-    chunk_size = line_size
+    chunk_size = entry_size
 
-    while (chunk_size + line_size) <= desired_chunk:
-        chunk_size += line_size
+    while (chunk_size + entry_size) <= desired_chunk:
+        chunk_size += entry_size
 
-    for block in read_chunks_backwards(filepath, chunk_size):
-        yield reverse(block.split('\n'))
+    entries_for_chunk = []
 
-"""
-timeline = []
-reader = utils.read_lines_backwards('test.txt', line_size=Post.BYTES_PER_POST)
+    for chunk in read_chunks_backwards(filepath, chunk_size):
+        for i in range(0, chunk_size, entry_size):
+            entry = chunk[i:(i + entry_size)]
 
-for serialized_posts in reader:
-    for serialized_post in serialized_posts:
-        if len(timeline) < limit:
-            post = Post.deserialize(serialized_post)
+            if entry.strip():
+                entries_for_chunk.append(entry)
 
-            if post.active and post.post_type == 't' and post.username == self.username:
-                timeline.append(post)
-        else:
-            return timeline
-"""
+    return reversed(entries_for_chunk)
