@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import Flask, g, session, render_template, request, redirect, url_for
-from storage import User, Post
+from storage import User
 
 app = Flask(__name__)
 
@@ -120,8 +120,7 @@ def post():
     user = User(username=session.get('username'))
 
     if request.form.get('savepost'):
-        post = Post(text=request.form.get('text'))
-        user.save_post(post)
+        user.save_post(text=request.form.get('text'))
 
     elif request.form.get('deletepost'):
         user.delete_post(request.form.get('timestamp'))

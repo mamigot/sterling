@@ -1,1 +1,1 @@
-from .access import User, Post
+from .access import User

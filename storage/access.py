@@ -1,66 +1,12 @@
-"""API to manage stored users and posts.
-
-Wanted functionality:
----------------------
-
-user = User(username='mikel')
-friend = User(username='pete')
-
-user.save_post(post)
-user.delete_post(post)
-
-timeline_posts = user.get_timeline_posts()
-profile_posts = user.get_profile_posts()
-
-user.follow(friend)
-user.unfollow(friend)
-
-followers = user.get_followers()
-friends = user.get_friends()
-
-user.is_following(friend)
-user.is_followed_by(friend)
-"""
+# -*- coding: utf-8 -*-
+"""API to manage stored users"""
 
 import os
 import time
-from .config import STORAGE_ROOT_PATH, STORED_FILE_TYPES, FIELD_SIZES
 from . import utils
 
 
 class User:
-    """
-    Serialized field values for all types of data:
-    - <active>:
-        - "1" if the entry is valid/relevant, "0" otherwise
-        - Size: 1 byte
-    - <username>:
-        - User's username, padded to hold the max. number of bytes
-        - Size: see FIELD_SIZES
-    - <timestamp>
-        - Timestamp of an event, using a format like that of str(int(time.time()))
-        - Size: 10 bytes
-    - <password>
-        - User's password, padded to hold the max. number of bytes
-        - Size: see FIELD_SIZES
-    - <text>
-        - Text content of the post, padded to hold the max. number of bytes
-        - Size: see FIELD_SIZES
-    - <direction>
-        - Relevant for relations. Either ">" (left-to-right) or "<" (right-to-left)
-        - Size: 1 byte
-    - <username_b>
-        - Relevant for relations (same as <username>)
-
-    Serialized strings' formats:
-    - User accounts
-        - <active><username><password>
-    - Posts (profile and timeline)
-        - <active><username><timestamp><text>
-    - Relations
-        - <active><username><direction><username_b>
-    """
-
     def __init__(self, username, password=None):
         self.username = username
         self.password = password
@@ -95,7 +41,7 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-    def save_post(self, post):
+    def save_post(self, text):
         """
         When a user creates a post, it'll be saved under his profile file as well
         as under all of his followers' timelines'. This makes writes slow but
@@ -216,18 +162,3 @@ class User:
         is following his friend –marked by an outbound link (direction ">").
         """
         pass
-
-    def _stored_filename_mapping(self, filetype):
-        if filetype not in FILETYPE_MAXCOUNT:
-            raise ValueError('Type of the file is unknown.')
-
-        numeric_hash = sum(ord(c) for c in self.username)
-        filenumber = numeric_hash % STORED_FILE_TYPES[filetype]
-
-        return '%s_%d.txt' % (filetype, filenumber)
-
-class Post:
-    def __init__(self, text, username=None, timestamp=None):
-        self.text = text
-        self.username = username
-        self.timestamp = timestamp
