@@ -11,7 +11,7 @@ class User:
         self.username = username
         self.password = password
 
-    def save_credentials(self):
+    def save_credential(self):
         """
         Find the relevant file with the accounts and check if there's an entry
         with that username marked "inactive". If so, make it active and overwrite
@@ -23,7 +23,7 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-    def verify_credentials(self):
+    def verify_credential(self):
         """
         Find the relevant file with the accounts and return True iff there's an
         entry marked "active" that matches the user's username and password.
@@ -32,7 +32,7 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-    def delete_credentials(self):
+    def delete_credential(self):
         """
         Find the relevant file with the accounts and, if there is a match for
         the user's username and password, mark it as "inactive" (overwrite this

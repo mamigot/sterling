@@ -16,10 +16,10 @@ def login_required(f):
 def register():
     if request.method == 'POST':
         user = User(request.form['username'], request.form['password'])
-        user.save_credentials()
+        user.save_credential()
 
-        # proceed once we know the credentials are stored
-        if user.verify_credentials():
+        # proceed once we know the credential are stored
+        if user.verify_credential():
             session['username'] = user.username
             return redirect(url_for('timeline'))
 
@@ -30,8 +30,8 @@ def deactivate():
     if request.method == 'POST':
         user = User(request.form['username'], request.form['password'])
 
-        if user.verify_credentials():
-            user.delete_credentials()
+        if user.verify_credential():
+            user.delete_credential()
             return redirect(url_for('register'))
 
     return render_template('deactivate.html')
@@ -41,7 +41,7 @@ def log_in():
     if request.method == 'POST':
         user = User(request.form['username'], request.form['password'])
 
-        if user.verify_credentials():
+        if user.verify_credential():
             session['username'] = user.username
             return redirect(url_for('timeline'))
 
