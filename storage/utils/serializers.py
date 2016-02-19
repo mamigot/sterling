@@ -241,7 +241,7 @@ def matches_relation(serialized, active, first_username, direction, second_usern
         return serialized == serialize_relation(active, first_username, \
             direction, second_username)
 
-    exclude = -1 * (UserFieldSizes.username + 1)
+    exclude = -1 * (UserFieldSizes.username)
 
     return serialized[:exclude] == serialize_relation(active, first_username, \
         direction, second_username='dummy')[:exclude]
