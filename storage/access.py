@@ -89,9 +89,9 @@ class User:
         if not match_location:
             raise UsernameDoesNotExist('Username "%s"' % self.username)
         else:
-            with open(file_path, 'r+') as f:
+            with open(file_path, 'rb+') as f:
                 f.seek(match_location, os.SEEK_END)
-                f.write('0')
+                f.write('0'.encode('utf-8'))
 
     def save_post(self, text):
         """

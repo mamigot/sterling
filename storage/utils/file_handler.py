@@ -17,12 +17,12 @@ def get_path(username, stored_type):
 def item_match(file_path, item_size, compare_func, compare_kwargs={}):
     file_size = os.path.getsize(file_path)
 
-    with open(file_path, 'r+') as f:
+    with open(file_path, 'rb+') as f:
         read_ptr = item_size
 
         while abs(read_ptr) <= abs(file_size):
             f.seek(-read_ptr, os.SEEK_END)
-            item = f.read(item_size)
+            item = f.read(item_size).decode('utf-8')
 
             if compare_func(item, **compare_kwargs):
                 return -read_ptr
