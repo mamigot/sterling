@@ -355,6 +355,25 @@ class User:
                 f.seek(match_location, os.SEEK_END)
                 f.write('0'.encode('utf-8'))
 
+        relation_path = utils.get_path(friend.username, StoredFileType.relation)
+
+        match_location = utils.item_match(
+            file_path=relation_path,
+            item_size=utils.SerializedSizeBytes.relation,
+            compare_func=utils.matches_relation,
+            compare_kwargs={
+                'active':True,
+                'first_username':friend.username,
+                'direction':'<',
+                'second_username':self.username
+            }
+        )
+
+        if match_location:
+            with open(relation_path, 'rb+') as f:
+                f.seek(match_location, os.SEEK_END)
+                f.write('0'.encode('utf-8'))
+
     def get_followers(self, limit=20):
         """
         (Followers are users who follow this one)
