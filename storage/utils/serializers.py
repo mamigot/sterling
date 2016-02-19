@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-from ..config import FIELD_SIZES
+from ..config import UserFieldSizes
 
 
-SERIALIZED_BYTES = {
-    'CREDENTIAL': 1 + FIELD_SIZES['USERNAME'] + FIELD_SIZES['PASSWORD'] + 1,
-    'POST': 1 + FIELD_SIZES['USERNAME'] + 10 + FIELD_SIZES['TEXT'] + 1,
-    'RELATION': 1 + FIELD_SIZES['USERNAME'] + 1 + FIELD_SIZES['USERNAME'] + 1
-}
+class SerializedSizeBytes:
+    credential = 1 + UserFieldSizes.username + UserFieldSizes.password
+    post = 1 + UserFieldSizes.username + 10 + UserFieldSizes.text
+    relation = 1 + UserFieldSizes.username + 1 + UserFieldSizes.username
 
 
 def serialize_credential(active, username, password):
@@ -19,13 +18,17 @@ def serialize_credential(active, username, password):
         raise TypeError('"password" must be a string"')
 
     active = '1' if active else '0'
-    username = utils.pad(username, FIELD_SIZES['USERNAME'])
-    password = utils.pad(password, FIELD_SIZES['PASSWORD'])
+    username = pad(username, UserFieldSizes.username)
+    password = pad(password, UserFieldSizes.password)
 
-    return '%s%s%s\n' % (active, username, password)
+    return '%s%s%s' % (active, username, password)
 
-def matches_credential(serialized, active, username, password):
-    return serialized == serialize_credential(active, username, password)
+def matches_credential(serialized, username, password, active=None):
+    if active is None:
+        # Pass a dummy value for "active" and ignore that byte when matching
+        return serialized[1:] == serialize_credential(True, username, password)[1:]
+
+    return serialized == (serialize_credential(active, username, password))
 
 def serialize_post(active, username, timestamp, text):
     """<active><username><timestamp><text>"""
@@ -37,17 +40,17 @@ def serialize_post(active, username, timestamp, text):
         raise TypeError('"text" must be a string"')
 
     active = '1' if active else '0'
-    username = utils.pad(username, FIELD_SIZES['USERNAME'])
+    username = pad(username, UserFieldSizes.username)
     timestamp = str(int(timestamp))
-    text = utils.pad(text, FIELD_SIZES['TEXT'])
+    text = pad(text, UserFieldSizes.text)
 
-    return '%s%s%s%s\n' % (active, username, timestamp, text)
+    return '%s%s%s%s' % (active, username, timestamp, text)
 
 def matches_post(serialized, active, username, timestamp, text=None):
     if text:
         return serialized == serialize_post(active, username, timestamp, text)
 
-    exclude = -1 * (FIELD_SIZES['TEXT'] + 1)
+    exclude = -1 * (UserFieldSizes.text + 1)
 
     return serialized[:exclude] == \
         serialize_post(active, username, timestamp, text='dummy')[:exclude]
@@ -62,22 +65,22 @@ def serialize_relation(active, first_username, direction, second_username):
         raise ValueError('"direction" must either be ">" or "<"')
 
     active = '1' if active else 0
-    first_username = utils.pad(first_username, FIELD_SIZES['USERNAME'])
-    second_username = utils.pad(second_username, FIELD_SIZES['USERNAME'])
+    first_username = pad(first_username, UserFieldSizes.username)
+    second_username = pad(second_username, UserFieldSizes.username)
 
-    return '%s%s%s%s\n' % (active, first_username, direction, second_username)
+    return '%s%s%s%s' % (active, first_username, direction, second_username)
 
 def matches_relation(serialized, active, first_username, direction, second_username=None):
     if second_username:
         return serialized == serialize_relation(active, first_username, \
             direction, second_username)
 
-    exclude = -1 * (FIELD_SIZES['USERNAME'] + 1)
+    exclude = -1 * (UserFieldSizes.username + 1)
 
     return serialized[:exclude] == serialize_relation(active, first_username, \
         direction, second_username='dummy')[:exclude]
 
-def pad(value, field_size, filler_char='\0'):
+def pad(value, field_size, filler_char='~'):
     """Pad value with as many filler_chars as field_size requires"""
     extra_count = field_size - len(value)
 
@@ -86,7 +89,7 @@ def pad(value, field_size, filler_char='\0'):
 
     return (filler_char * extra_count) + value
 
-def unpad(value, filler_char='\0'):
+def unpad(value, filler_char='~'):
     """Remove all starting filler_chars from value"""
     bad_count = 0
 
