@@ -29,7 +29,7 @@ def item_match(file_path, item_size, compare_func, compare_kwargs={}):
 
             read_ptr += item_size
 
-def item_match_sweep(file_path, item_size, compare_func, compare_kwargs={}):
+def item_match_sweep(file_path, item_size, compare_func, compare_kwargs={}, limit=None):
     file_size = os.path.getsize(file_path)
     items = []
 
@@ -42,6 +42,9 @@ def item_match_sweep(file_path, item_size, compare_func, compare_kwargs={}):
 
             if compare_func(item, **compare_kwargs):
                 items.append(item)
+
+                if limit and len(items) > limit:
+                    return items
 
             read_ptr += item_size
 
