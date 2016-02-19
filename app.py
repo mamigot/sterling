@@ -69,21 +69,21 @@ def timeline():
 @login_required
 def profile(secondary_username=None):
     user = User(username=session.get('username'))
+    secondary_user = User(username=secondary_username)
 
     if secondary_username and secondary_username != user.username:
+        if not secondary_user.exists():
+            return render_template('404.html',
+                message='User "%s" does not exist' % secondary_user.username
+            )
+
         # Fetch the secondary user's posts and the relationship to the main user
-        secondary_user = User(username=secondary_username)
-        posts = secondary_user.get_profile_posts()
-
-        is_following = user.is_following(secondary_user)
-        is_followed_by = secondary_user.is_following(user)
-
         return render_template('profile.html',
             username=user.username,
-            posts=posts,
+            posts=secondary_user.get_profile_posts(),
             secondary_username=secondary_user.username,
-            is_following=is_following,
-            is_followed_by=is_followed_by
+            is_following=user.is_following(secondary_user),
+            is_followed_by=secondary_user.is_following(user)
         )
 
     else:
