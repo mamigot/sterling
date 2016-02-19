@@ -58,8 +58,11 @@ def sign_out():
 @login_required
 def timeline():
     user = User(username=session.get('username'))
-    posts = user.get_timeline_posts()
-    return render_template('timeline.html', username=user.username, posts=posts)
+
+    return render_template('timeline.html',
+        username=user.username,
+        posts=user.get_timeline_posts()
+    )
 
 @app.route('/profile')
 @app.route('/profile/<secondary_username>', methods=['GET'])
@@ -75,23 +78,30 @@ def profile(secondary_username=None):
         is_following = user.is_following(secondary_user)
         is_followed_by = secondary_user.is_following(user)
 
-        return render_template('profile.html', username=user.username, posts=posts,
-            secondary_username=secondary_username, is_following=is_following,
-            is_followed_by=is_followed_by)
+        return render_template('profile.html',
+            username=user.username,
+            posts=posts,
+            secondary_username=secondary_user.username,
+            is_following=is_following,
+            is_followed_by=is_followed_by
+        )
 
     else:
         # Fetch our own profile
-        posts = user.get_profile_posts()
-        return render_template('profile.html', username=user.username, posts=posts)
+        return render_template('profile.html',
+            username=user.username,
+            posts=user.get_profile_posts()
+        )
 
 @app.route('/followers', methods=['GET'])
 @login_required
 def followers():
     user = User(username=session.get('username'))
-    follower_usernames = [f.username for f in user.get_followers()]
 
-    return render_template('followers.html', username=user.username,
-        followers=follower_usernames)
+    return render_template('followers.html',
+        username=user.username,
+        followers=[u.username for u in user.get_followers()]
+    )
 
 @app.route('/friends', methods=['GET', 'POST'])
 @login_required
@@ -99,16 +109,17 @@ def friends():
     user = User(username=session.get('username'))
 
     if request.method == 'GET':
-        friend_usernames = [f.username for f in user.get_friends()]
-
-        return render_template('friends.html', username=user.username,
-            friends=friend_usernames)
+        return render_template('friends.html',
+            username=user.username,
+            friends=[u.username for u in user.get_friends()]
+        )
 
     elif request.method == 'POST':
         secondary_user = User(username=request.form.get('secondary_username'))
 
         if request.form.get('follow'):
             user.follow(secondary_user)
+
         elif request.form.get('unfollow'):
             user.unfollow(secondary_user)
 
