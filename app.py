@@ -8,7 +8,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('username') is None:
-            return redirect(url_for('log_in', next=request.url))
+            return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -37,7 +37,7 @@ def deactivate():
     return render_template('deactivate.html')
 
 @app.route('/login', methods=['GET', 'POST'])
-def log_in():
+def login():
     if request.method == 'POST':
         user = User(request.form['username'], request.form['password'])
 
@@ -51,7 +51,7 @@ def log_in():
 @login_required
 def sign_out():
     session.pop('username')
-    return redirect(url_for('log_in'))
+    return redirect(url_for('login'))
 
 @app.route('/')
 @app.route('/timeline', methods=['GET'])
