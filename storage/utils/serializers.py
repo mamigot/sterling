@@ -12,10 +12,18 @@ def serialize_credential(active, username, password):
     """<active><username><password>"""
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
+
     elif not isinstance(username, str):
         raise TypeError('"username" must be a string"')
+
+    elif len(username) > UserFieldSizes.username:
+        raise ValueError('max. size of username = %d' % UserFieldSizes.username)
+
     elif not isinstance(password, str):
         raise TypeError('"password" must be a string"')
+
+    elif len(password) > UserFieldSizes.password:
+        raise ValueError('max. size of password = %d' % UserFieldSizes.password)
 
     active = '1' if active else '0'
     username = pad(username, UserFieldSizes.username)
@@ -34,10 +42,18 @@ def serialize_post(active, username, timestamp, text):
     """<active><username><timestamp><text>"""
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
+
     elif not isinstance(username, str):
         raise TypeError('"username" must be a string"')
+
+    elif len(username) > UserFieldSizes.username:
+        raise ValueError('max. size of username = %d' % UserFieldSizes.username)
+
     elif not isinstance(text, str):
         raise TypeError('"text" must be a string"')
+
+    elif len(text) > UserFieldSizes.text:
+        raise ValueError('max. size of text = %d' % UserFieldSizes.text)
 
     active = '1' if active else '0'
     username = pad(username, UserFieldSizes.username)
@@ -59,8 +75,13 @@ def serialize_relation(active, first_username, direction, second_username):
     """<active><first_username><direction><second_username>"""
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
-    elif not [isinstance(u, str) for u in (first_username, second_username)]:
+
+    elif not (isinstance(u, str) for u in (first_username, second_username)):
         raise TypeError('"username" fields must be strings"')
+
+    elif len(first_username) + len(second_username) > 2 * UserFieldSizes.username:
+        raise ValueError('max. size of username = %d' % UserFieldSizes.username)
+
     elif direction != '>' and direction != '<':
         raise ValueError('"direction" must either be ">" or "<"')
 
