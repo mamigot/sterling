@@ -18,6 +18,22 @@ class User:
         self.username = username
         self.password = password
 
+    def exists(self):
+        """
+        Find the relevant file with the accounts and check if the wanted account
+        exists (either active or inactive). If so, output True
+        """
+        credential_path = utils.get_path(self.username, StoredFileType.credential)
+
+        match_location = utils.item_match(
+            file_path=credential_path,
+            item_size=utils.SerializedSizeBytes.credential,
+            compare_func=utils.matches_credential,
+            compare_kwargs={'username':self.username}
+        )
+
+        return match_location is not None
+
     def save_credential(self):
         """
         Find the relevant file with the accounts and check if the wanted account
@@ -84,10 +100,9 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-        credential_path = utils.get_path(self.username, StoredFileType.credential)
-
-        match_location = utils.item_match(
-            file_path=credential_path,
+        num_modified = utils.set_active_flag(
+            active_flag=False,
+            file_path=utils.get_path(self.username, StoredFileType.credential),
             item_size=utils.SerializedSizeBytes.credential,
             compare_func=utils.matches_credential,
             compare_kwargs={
@@ -97,12 +112,8 @@ class User:
             }
         )
 
-        if not match_location:
+        if num_modified == 0:
             raise UsernameDoesNotExist('Username "%s"' % self.username)
-        else:
-            with open(credential_path, 'rb+') as f:
-                f.seek(match_location, os.SEEK_END)
-                f.write('0'.encode('utf-8'))
 
     def save_post(self, text):
         """
@@ -166,8 +177,10 @@ class User:
         characters).
         """
         profile_path = utils.get_path(self.username, StoredFileType.post_profile)
-        match_location = utils.item_match(
-            file_path=profile_path,
+
+        utils.set_active_flag(
+            active_flag=False,
+            file_path=utils.get_path(self.username, StoredFileType.post_profile),
             item_size=utils.SerializedSizeBytes.profile_post,
             compare_func=utils.matches_profile_post,
             compare_kwargs={
@@ -177,17 +190,12 @@ class User:
             }
         )
 
-        if match_location:
-            with open(profile_path, 'rb+') as f:
-                f.seek(match_location, os.SEEK_END)
-                f.write('0'.encode('utf-8'))
-
         for follower in self.get_followers():
-            timeline_path = utils.get_path(follower.username, StoredFileType.post_timeline)
-            match_location = utils.item_match(
-                file_path=profile_path,
-                item_size=utils.SerializedSizeBytes.timeline_post,
-                compare_func=utils.matches_timeline_post,
+            utils.set_active_flag(
+                active_flag=False,
+                file_path=utils.get_path(follower.username, StoredFileType.post_timeline),
+                item_size=utils.SerializedSizeBytes.profile_post,
+                compare_func=utils.matches_profile_post,
                 compare_kwargs={
                     'active':True,
                     'username':follower.username,
@@ -195,11 +203,6 @@ class User:
                     'timestamp':timestamp
                 }
             )
-
-            if match_location:
-                with open(profile_path, 'rb+') as f:
-                    f.seek(match_location, os.SEEK_END)
-                    f.write('0'.encode('utf-8'))
 
     def get_timeline_posts(self, limit=20):
         """
@@ -270,10 +273,12 @@ class User:
         If the user's relation to his friend is new (would know after iterating
         through the relevant file), serialize it and append it to that file.
         """
-        relation_path = utils.get_path(self.username, StoredFileType.relation)
+        if not friend.exists(): return
 
-        match_location = utils.item_match(
-            file_path=relation_path,
+        user_relation_path = utils.get_path(self.username, StoredFileType.relation)
+        user_num_modified = utils.set_active_flag(
+            active_flag=True,
+            file_path=user_relation_path,
             item_size=utils.SerializedSizeBytes.relation,
             compare_func=utils.matches_relation,
             compare_kwargs={
@@ -284,12 +289,8 @@ class User:
             }
         )
 
-        if match_location:
-            with open(relation_path, 'rb+') as f:
-                f.seek(match_location, os.SEEK_END)
-                f.write('1'.encode('utf-8'))
-        else:
-            with open(relation_path, 'a') as f:
+        if user_num_modified == 0:
+            with open(user_relation_path, 'a') as f:
                 f.write(utils.serialize_relation(
                     active=True,
                     first_username=self.username,
@@ -297,10 +298,10 @@ class User:
                     second_username=friend.username
                 ))
 
-        relation_path = utils.get_path(friend.username, StoredFileType.relation)
-
-        match_location = utils.item_match(
-            file_path=relation_path,
+        friend_relation_path = utils.get_path(friend.username, StoredFileType.relation)
+        friend_num_modified = utils.set_active_flag(
+            active_flag=True,
+            file_path=friend_relation_path,
             item_size=utils.SerializedSizeBytes.relation,
             compare_func=utils.matches_relation,
             compare_kwargs={
@@ -311,12 +312,8 @@ class User:
             }
         )
 
-        if match_location:
-            with open(relation_path, 'rb+') as f:
-                f.seek(match_location, os.SEEK_END)
-                f.write('1'.encode('utf-8'))
-        else:
-            with open(relation_path, 'a') as f:
+        if friend_num_modified == 0:
+            with open(friend_relation_path, 'a') as f:
                 f.write(utils.serialize_relation(
                     active=True,
                     first_username=friend.username,
@@ -336,10 +333,9 @@ class User:
         the user's and the friend's usernames, mark it as "inactive" (overwrite
         this byte).
         """
-        relation_path = utils.get_path(self.username, StoredFileType.relation)
-
-        match_location = utils.item_match(
-            file_path=relation_path,
+        utils.set_active_flag(
+            active_flag=False,
+            file_path=utils.get_path(self.username, StoredFileType.relation),
             item_size=utils.SerializedSizeBytes.relation,
             compare_func=utils.matches_relation,
             compare_kwargs={
@@ -350,15 +346,9 @@ class User:
             }
         )
 
-        if match_location:
-            with open(relation_path, 'rb+') as f:
-                f.seek(match_location, os.SEEK_END)
-                f.write('0'.encode('utf-8'))
-
-        relation_path = utils.get_path(friend.username, StoredFileType.relation)
-
-        match_location = utils.item_match(
-            file_path=relation_path,
+        utils.set_active_flag(
+            active_flag=False,
+            file_path=utils.get_path(friend.username, StoredFileType.relation),
             item_size=utils.SerializedSizeBytes.relation,
             compare_func=utils.matches_relation,
             compare_kwargs={
@@ -368,11 +358,6 @@ class User:
                 'second_username':self.username
             }
         )
-
-        if match_location:
-            with open(relation_path, 'rb+') as f:
-                f.seek(match_location, os.SEEK_END)
-                f.write('0'.encode('utf-8'))
 
     def get_followers(self, limit=20):
         """
