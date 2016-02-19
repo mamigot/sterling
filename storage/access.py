@@ -10,6 +10,9 @@ from .config import StoredFileType
 class UsernameAlreadyExists(Exception):
     pass
 
+class UsernameDoesNotExist(Exception):
+    pass
+
 class User:
     def __init__(self, username, password=None):
         self.username = username
@@ -54,6 +57,17 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
+        file_path = utils.get_path(self.username, StoredFileType.credential)
+        item_size = utils.SerializedSizeBytes.credential
+
+        compare_kwargs = {'active':True, 'username':self.username,
+            'password':self.password}
+
+        match_location = utils.item_match(file_path, item_size,
+            utils.matches_credential, compare_kwargs)
+
+        return match_location is not None
+
     def delete_credential(self):
         """
         Find the relevant file with the accounts and, if there is a match for
@@ -62,6 +76,22 @@ class User:
         """
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
+
+        file_path = utils.get_path(self.username, StoredFileType.credential)
+        item_size = utils.SerializedSizeBytes.credential
+
+        compare_kwargs = {'active':True, 'username':self.username,
+            'password':self.password}
+
+        match_location = utils.item_match(file_path, item_size,
+            utils.matches_credential, compare_kwargs)
+
+        if not match_location:
+            raise UsernameDoesNotExist('Username "%s"' % self.username)
+        else:
+            with open(file_path, 'r+') as f:
+                f.seek(match_location, os.SEEK_END)
+                f.write('0')
 
     def save_post(self, text):
         """
