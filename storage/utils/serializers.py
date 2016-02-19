@@ -4,7 +4,8 @@ from ..config import UserFieldSizes
 
 class SerializedSizeBytes:
     credential = 1 + UserFieldSizes.username + UserFieldSizes.password
-    post = 1 + UserFieldSizes.username + 10 + UserFieldSizes.text
+    profile_post = 1 + UserFieldSizes.username + 10 + UserFieldSizes.text
+    timeline_post = 1 + 2 * UserFieldSizes.username + 10 + UserFieldSizes.text
     relation = 1 + UserFieldSizes.username + 1 + UserFieldSizes.username
 
 class SerializedRelationBounds:
