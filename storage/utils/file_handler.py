@@ -1,15 +1,18 @@
 import os
-from ..config import STORAGE_ROOT_PATH, STORED_FILE_TYPES
+from ..config import STORAGE_ROOT_PATH, StoredFileType
 
 
-def stored_filename(username, filetype):
-    if filetype not in STORED_FILE_TYPES:
+def get_path(username, stored_type):
+    filetype, count = stored_type
+
+    if not hasattr(StoredFileType, filetype):
         raise ValueError('Type of the file is unknown.')
 
     numeric_hash = sum(ord(c) for c in username)
-    filenumber = numeric_hash % STORED_FILE_TYPES[filetype]
+    filenumber = numeric_hash % count
 
-    return '%s_%d.txt' % (filetype, filenumber)
+    filename = '%s_%d.txt' % (filetype, filenumber)
+    return os.path.join(STORAGE_ROOT_PATH, filename)
 
 def read_chunks_backwards(filepath, chunk_size):
     """Read one chunk at a time, backwards"""
