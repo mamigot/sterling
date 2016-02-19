@@ -67,7 +67,7 @@ def timeline():
 def profile(secondary_username=None):
     user = User(username=session.get('username'))
 
-    if secondary_username:
+    if secondary_username and secondary_username != user.username:
         # Fetch the secondary user's posts and the relationship to the main user
         secondary_user = User(username=secondary_username)
         posts = secondary_user.get_profile_posts()
