@@ -30,23 +30,28 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-        file_path = utils.get_path(self.username, StoredFileType.credential)
-        item_size = utils.SerializedSizeBytes.credential
+        credential_path = utils.get_path(self.username, StoredFileType.credential)
 
-        compare_kwargs = {'username':self.username, 'password':self.password}
-
-        match_location = utils.item_match(file_path, item_size,
-            utils.matches_credential, compare_kwargs)
+        match_location = utils.item_match(
+            file_path=credential_path,
+            item_size=utils.SerializedSizeBytes.credential,
+            compare_func=utils.matches_credential,
+            compare_kwargs={
+                'username':self.username,
+                'password':self.password
+            }
+        )
 
         if match_location:
             raise UsernameAlreadyExists('Username "%s"' % self.username)
         else:
             # Haven't found it, so just append it to the end of the file
-            credential = utils.serialize_credential(active=True,
-                username=self.username, password=self.password)
-
-            with open(file_path, 'a') as f:
-                f.write(credential)
+            with open(credential_path, 'a') as f:
+                f.write(utils.serialize_credential(
+                    active=True,
+                    username=self.username,
+                    password=self.password
+                ))
 
     def verify_credential(self):
         """
@@ -57,14 +62,16 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-        file_path = utils.get_path(self.username, StoredFileType.credential)
-        item_size = utils.SerializedSizeBytes.credential
-
-        compare_kwargs = {'active':True, 'username':self.username,
-            'password':self.password}
-
-        match_location = utils.item_match(file_path, item_size,
-            utils.matches_credential, compare_kwargs)
+        match_location = utils.item_match(
+            file_path=utils.get_path(self.username, StoredFileType.credential),
+            item_size=utils.SerializedSizeBytes.credential,
+            compare_func=utils.matches_credential,
+            compare_kwargs={
+                'active':True,
+                'username':self.username,
+                'password':self.password
+            }
+        )
 
         return match_location is not None
 
@@ -77,17 +84,23 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-        file_path = utils.get_path(self.username, StoredFileType.credential)
-        item_size = utils.SerializedSizeBytes.credential
+        credential_path = utils.get_path(self.username, StoredFileType.credential)
 
-        compare_kwargs = {'active':True, 'username':self.username, 'password':self.password}
-        match_location = utils.item_match(file_path, item_size,
-            utils.matches_credential, compare_kwargs)
+        match_location = utils.item_match(
+            file_path=credential_path,
+            item_size=utils.SerializedSizeBytes.credential,
+            compare_func=utils.matches_credential,
+            compare_kwargs={
+                'active':True,
+                'username':self.username,
+                'password':self.password
+            }
+        )
 
         if not match_location:
             raise UsernameDoesNotExist('Username "%s"' % self.username)
         else:
-            with open(file_path, 'rb+') as f:
+            with open(credential_path, 'rb+') as f:
                 f.seek(match_location, os.SEEK_END)
                 f.write('0'.encode('utf-8'))
 
@@ -102,17 +115,30 @@ class User:
         - The author's "profile" file
         - Each followers' "timeline" file
         """
-        post = utils.serialize_post(active=True, username=self.username,
-            timestamp=time.time(), text=text)
+        post_timestamp = time.time()
 
-        file_path = utils.get_path(self.username, StoredFileType.post_profile)
-        with open(file_path, 'a') as f:
-            f.write(post)
+        profile_path = utils.get_path(self.username, StoredFileType.post_profile)
+
+        with open(profile_path, 'a') as f:
+            profile_post = utils.serialize_profile_post(
+                active=True,
+                username=self.username,
+                timestamp=post_timestamp,
+                text=text
+            )
+            f.write(profile_post)
 
         for follower in self.get_followers():
-            file_path = utils.get_path(follower.username, StoredFileType.post_timeline)
-            with open(file_path, 'a') as f:
-                f.write(post)
+            timeline_path = utils.get_path(follower.username, StoredFileType.post_timeline)
+
+            with open(timeline_path, 'a') as f:
+                f.write(utils.serialize_timeline_post(
+                    active=True,
+                    username=follower.username,
+                    author=self.username,
+                    timestamp=post_timestamp,
+                    text=text
+                ))
 
     def delete_post(self, timestamp):
         """
@@ -139,7 +165,41 @@ class User:
         - Match this string to each post's serialized string (will be the first
         characters).
         """
-        pass
+        profile_path = utils.get_path(self.username, StoredFileType.post_profile)
+        match_location = utils.item_match(
+            file_path=profile_path,
+            item_size=utils.SerializedSizeBytes.profile_post,
+            compare_func=utils.matches_profile_post,
+            compare_kwargs={
+                'active':True,
+                'username':self.username,
+                'timestamp':timestamp
+            }
+        )
+
+        if match_location:
+            with open(profile_path, 'rb+') as f:
+                f.seek(match_location, os.SEEK_END)
+                f.write('0'.encode('utf-8'))
+
+        for follower in self.get_followers():
+            timeline_path = utils.get_path(follower.username, StoredFileType.post_timeline)
+            match_location = utils.item_match(
+                file_path=profile_path,
+                item_size=utils.SerializedSizeBytes.timeline_post,
+                compare_func=utils.matches_timeline_post,
+                compare_kwargs={
+                    'active':True,
+                    'username':follower.username,
+                    'author':self.username,
+                    'timestamp':timestamp
+                }
+            )
+
+            if match_location:
+                with open(profile_path, 'rb+') as f:
+                    f.seek(match_location, os.SEEK_END)
+                    f.write('0'.encode('utf-8'))
 
     def get_timeline_posts(self, limit=20):
         """
@@ -153,14 +213,27 @@ class User:
         - Match this string to each post's serialized string (will be the first
         characters).
         """
-        file_path = utils.get_path(self.username, StoredFileType.post_timeline)
-        item_size = utils.SerializedSizeBytes.post
+        serialized_posts = utils.item_match_sweep(
+            file_path=utils.get_path(self.username, StoredFileType.post_timeline),
+            item_size=utils.SerializedSizeBytes.timeline_post,
+            compare_func=utils.matches_timeline_post,
+            compare_kwargs={'active':True, 'username':self.username},
+            limit=limit
+        )
 
-        compare_kwargs = {'active':True, 'username':self.username}
-        serialized_posts = utils.item_match_sweep(file_path, item_size,
-            utils.matches_post, compare_kwargs)
+        timeline_posts = []
 
-        return [Post(**utils.deserialize_post(sp)) for sp in serialized_posts]
+        for serialized in serialized_posts:
+            deserialized = utils.deserialize_timeline_post(serialized)
+
+            timeline_posts.append(Post(
+                active=deserialized.get('active'),
+                username=deserialized.get('author'),
+                timestamp=deserialized.get('timestamp'),
+                text=deserialized.get('text')
+            ))
+
+        return timeline_posts
 
     def get_profile_posts(self, limit=20):
         """
@@ -174,14 +247,15 @@ class User:
         - Match this string to each post's serialized string (will be the first
         characters).
         """
-        file_path = utils.get_path(self.username, StoredFileType.post_profile)
-        item_size = utils.SerializedSizeBytes.post
+        serialized_posts = utils.item_match_sweep(
+            file_path=utils.get_path(self.username, StoredFileType.post_profile),
+            item_size=utils.SerializedSizeBytes.profile_post,
+            compare_func=utils.matches_profile_post,
+            compare_kwargs={'active':True, 'username':self.username},
+            limit=limit
+        )
 
-        compare_kwargs = {'active':True, 'username':self.username}
-        serialized_posts = utils.item_match_sweep(file_path, item_size,
-            utils.matches_post, compare_kwargs)
-
-        return [Post(**utils.deserialize_post(sp)) for sp in serialized_posts]
+        return [Post(**utils.deserialize_profile_post(sp)) for sp in serialized_posts]
 
     def follow(self, friend):
         """
