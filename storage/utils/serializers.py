@@ -8,13 +8,12 @@ class SerializedSizeBytes:
     timeline_post = 1 + 2 * UserFieldSizes.username + 10 + UserFieldSizes.text
     relation = 1 + UserFieldSizes.username + 1 + UserFieldSizes.username
 
-class SerializedRelationBounds:
+class SerializedCredentialBounds:
     active = (0,)
-    first_username = (1, UserFieldSizes.username + 1)
-    direction = (UserFieldSizes.username + 1,)
-    second_username = (
-        UserFieldSizes.username + 2,
-        2 * UserFieldSizes.username + 2
+    username = (1, UserFieldSizes.username + 1)
+    password = (
+        UserFieldSizes.username + 1,
+        UserFieldSizes.username + UserFieldSizes.password + 1
     )
 
 class SerializedProfilePostBounds:
@@ -45,6 +44,15 @@ class SerializedTimelinePostBounds:
         2 * UserFieldSizes.username + 11 + UserFieldSizes.text
     )
 
+class SerializedRelationBounds:
+    active = (0,)
+    first_username = (1, UserFieldSizes.username + 1)
+    direction = (UserFieldSizes.username + 1,)
+    second_username = (
+        UserFieldSizes.username + 2,
+        2 * UserFieldSizes.username + 2
+    )
+
 def serialize_credential(active, username, password):
     """<active><username><password>"""
     if not isinstance(active, bool):
@@ -68,12 +76,25 @@ def serialize_credential(active, username, password):
 
     return '%s%s%s' % (active, username, password)
 
-def matches_credential(serialized, username, password, active=None):
-    if active is None:
-        # Pass a dummy value for "active" and ignore that byte when matching
-        return serialized[1:] == serialize_credential(True, username, password)[1:]
+def matches_credential(serialized, active=None, username=None, password=None):
+    Bounds = SerializedCredentialBounds
 
-    return serialized == (serialize_credential(active, username, password))
+    if active is not None:
+         if (active == True and serialized[Bounds.active[0]] != '1') or \
+            (active == False and serialized[Bounds.active[0]] != '0'):
+            return False
+
+    if username is not None:
+        if pad(username, UserFieldSizes.username) != \
+            serialized[Bounds.username[0]:Bounds.username[1]]:
+            return False
+
+    if password is not None:
+        if pad(password, UserFieldSizes.password) != \
+            serialized[Bounds.password[0]:Bounds.password[1]]:
+            return False
+
+    return True
 
 def serialize_profile_post(active, username, timestamp, text):
     """<active><username><timestamp><text>"""
