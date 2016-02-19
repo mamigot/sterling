@@ -4,7 +4,11 @@
 import os
 import time
 from . import utils
+from .config import StoredFileType
 
+
+class UsernameAlreadyExists(Exception):
+    pass
 
 class User:
     def __init__(self, username, password=None):
@@ -13,15 +17,38 @@ class User:
 
     def save_credential(self):
         """
-        Find the relevant file with the accounts and check if there's an entry
-        with that username marked "inactive". If so, make it active and overwrite
-        the password field with the new value.
+        Find the relevant file with the accounts and check if the wanted account
+        exists (either active or inactive). If so, raise a UsernameAlreadyExists
+        exception.
 
         If the relevant file does not contain a match for that username, serialize
-        the login data (active, username, password) and append it to said file.
+        the login data (active, username, password) and append it to the file.
         """
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
+
+        file_path = utils.get_path(self.username, StoredFileType.credential)
+        file_size = os.path.getsize(file_path)
+        item_size = utils.SerializedSizeBytes.credential
+
+        credential = utils.serialize_credential(active=True, username=self.username,
+            password=self.password)
+
+        with open(file_path, 'r+') as f:
+            read_ptr = item_size
+
+            while abs(read_ptr) <= abs(file_size):
+                f.seek(-read_ptr, os.SEEK_END)
+                item = f.read(item_size)
+
+                if utils.matches_credential(item, self.username, self.password):
+                    raise UsernameAlreadyExists('Username "%s"' % self.username)
+
+                read_ptr += item_size
+
+            # Haven't found it, so just append it to the end of the file
+            f.seek(0, os.SEEK_END)
+            f.write(credential)
 
     def verify_credential(self):
         """
