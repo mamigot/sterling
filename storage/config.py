@@ -22,7 +22,7 @@ class UserFieldSizes:
 
 
 def initiate_storage():
-    for filetype, count in StoredFileTypes.get_types():
+    for filetype, count in StoredFileType.get_types():
 
         for idx in range(count):
             filename = '%s_%d.txt' % (filetype, idx)
