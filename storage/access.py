@@ -80,9 +80,7 @@ class User:
         file_path = utils.get_path(self.username, StoredFileType.credential)
         item_size = utils.SerializedSizeBytes.credential
 
-        compare_kwargs = {'active':True, 'username':self.username,
-            'password':self.password}
-
+        compare_kwargs = {'active':True, 'username':self.username, 'password':self.password}
         match_location = utils.item_match(file_path, item_size,
             utils.matches_credential, compare_kwargs)
 
@@ -104,7 +102,17 @@ class User:
         - The author's "profile" file
         - Each followers' "timeline" file
         """
-        pass
+        post = utils.serialize_post(active=True, username=self.username,
+            timestamp=time.time(), text=text)
+
+        file_path = utils.get_path(self.username, StoredFileType.post_profile)
+        with open(file_path, 'a') as f:
+            f.write(post)
+
+        for follower in self.get_followers():
+            file_path = utils.get_path(follower.username, StoredFileType.post_timeline)
+            with open(file_path, 'a') as f:
+                f.write(post)
 
     def delete_post(self, timestamp):
         """
@@ -145,7 +153,14 @@ class User:
         - Match this string to each post's serialized string (will be the first
         characters).
         """
-        pass
+        file_path = utils.get_path(self.username, StoredFileType.post_timeline)
+        item_size = utils.SerializedSizeBytes.post
+
+        compare_kwargs = {'active':True, 'username':self.username}
+        serialized_posts = utils.item_match_sweep(file_path, item_size,
+            utils.matches_post, compare_kwargs)
+
+        return [Post(**utils.deserialize_post(sp)) for sp in serialized_posts]
 
     def get_profile_posts(self, limit=20):
         """
@@ -159,7 +174,14 @@ class User:
         - Match this string to each post's serialized string (will be the first
         characters).
         """
-        pass
+        file_path = utils.get_path(self.username, StoredFileType.post_profile)
+        item_size = utils.SerializedSizeBytes.post
+
+        compare_kwargs = {'active':True, 'username':self.username}
+        serialized_posts = utils.item_match_sweep(file_path, item_size,
+            utils.matches_post, compare_kwargs)
+
+        return [Post(**utils.deserialize_post(sp)) for sp in serialized_posts]
 
     def follow(self, friend):
         """
@@ -197,7 +219,7 @@ class User:
         Iterate over the user's relations file and return all which are
         active and contain an inbound link (direction "<").
         """
-        pass
+        return []
 
     def get_friends(self, limit=20):
         """
@@ -206,11 +228,18 @@ class User:
         Iterate over the user's relations file and return all which are
         active and contain an outbound link (direction ">").
         """
-        pass
+        return []
 
     def is_following(self, friend):
         """
         Iterate over the user's relations file and return True if the user
         is following his friend –marked by an outbound link (direction ">").
         """
-        pass
+        return True
+
+class Post:
+    def __init__(self, active, username, timestamp, text):
+        self.active = active
+        self.username = username
+        self.timestamp = timestamp
+        self.text = text
