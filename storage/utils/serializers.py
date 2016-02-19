@@ -7,17 +7,42 @@ class SerializedSizeBytes:
     post = 1 + UserFieldSizes.username + 10 + UserFieldSizes.text
     relation = 1 + UserFieldSizes.username + 1 + UserFieldSizes.username
 
-class SerializedPostBounds:
-    active = (0,)
-    username = (1, UserFieldSizes.username + 1)
-    timestamp = (UserFieldSizes.username + 1, UserFieldSizes.username + 11)
-    text = (UserFieldSizes.username + 11, UserFieldSizes.username + 11 + UserFieldSizes.text)
-
 class SerializedRelationBounds:
     active = (0,)
     first_username = (1, UserFieldSizes.username + 1)
     direction = (UserFieldSizes.username + 1,)
-    second_username = (UserFieldSizes.username + 2, 2 * UserFieldSizes.username + 2)
+    second_username = (
+        UserFieldSizes.username + 2,
+        2 * UserFieldSizes.username + 2
+    )
+
+class SerializedProfilePostBounds:
+    active = (0,)
+    username = (1, UserFieldSizes.username + 1)
+    timestamp = (
+        UserFieldSizes.username + 1,
+        UserFieldSizes.username + 11
+    )
+    text = (
+        UserFieldSizes.username + 11,
+        UserFieldSizes.username + 11 + UserFieldSizes.text
+    )
+
+class SerializedTimelinePostBounds:
+    active = (0,)
+    username = (1, UserFieldSizes.username + 1)
+    author = (
+        UserFieldSizes.username + 1,
+        2 * UserFieldSizes.username + 1
+    )
+    timestamp = (
+        2 * UserFieldSizes.username + 1,
+        2 * UserFieldSizes.username + 11
+    )
+    text = (
+        2 * UserFieldSizes.username + 11,
+        2 * UserFieldSizes.username + 11 + UserFieldSizes.text
+    )
 
 def serialize_credential(active, username, password):
     """<active><username><password>"""
@@ -49,7 +74,7 @@ def matches_credential(serialized, username, password, active=None):
 
     return serialized == (serialize_credential(active, username, password))
 
-def serialize_post(active, username, timestamp, text):
+def serialize_profile_post(active, username, timestamp, text):
     """<active><username><timestamp><text>"""
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
@@ -73,34 +98,109 @@ def serialize_post(active, username, timestamp, text):
 
     return '%s%s%s%s' % (active, username, timestamp, text)
 
-def deserialize_post(serialized):
-    SPB = SerializedPostBounds
+def deserialize_profile_post(serialized):
+    Bounds = SerializedProfilePostBounds
 
     return dict(
-        active=True if serialized[SPB.active[0]] == '1' else False,
-        username=unpad(serialized[SPB.username[0]:SPB.username[1]]),
-        timestamp=serialized[SPB.timestamp[0]:SPB.timestamp[1]],
-        text=unpad(serialized[SPB.text[0]:SPB.text[1]])
+        active=True if serialized[Bounds.active[0]] == '1' else False,
+        username=unpad(serialized[Bounds.username[0]:Bounds.username[1]]),
+        timestamp=serialized[Bounds.timestamp[0]:Bounds.timestamp[1]],
+        text=unpad(serialized[Bounds.text[0]:Bounds.text[1]])
     )
 
-def matches_post(serialized, active=None, username=None, timestamp=None, text=None):
-    SPB = SerializedPostBounds
+def matches_profile_post(serialized, active=None, username=None, timestamp=None, text=None):
+    Bounds = SerializedProfilePostBounds
 
     if active is not None:
-         if (active == True and serialized[SPB.active[0]] != '1') or \
-            (active == False and serialized[SPB.active[0]] != '0'):
+         if (active == True and serialized[Bounds.active[0]] != '1') or \
+            (active == False and serialized[Bounds.active[0]] != '0'):
             return False
 
     if username is not None:
-        if pad(username, UserFieldSizes.username) != serialized[SPB.username[0]:SPB.username[1]]:
+        if pad(username, UserFieldSizes.username) != \
+            serialized[Bounds.username[0]:Bounds.username[1]]:
             return False
 
     if timestamp is not None:
-        if str(int(timestamp)) != serialized[SPB.timestamp[0]:SPB.timestamp[1]]:
+        if str(int(timestamp)) != \
+            serialized[Bounds.timestamp[0]:Bounds.timestamp[1]]:
             return False
 
     if text is not None:
-        if pad(text, UserFieldSizes.text) != serialized[SPB.text[0]:SPB.text[1]]:
+        if pad(text, UserFieldSizes.text) != serialized[Bounds.text[0]:Bounds.text[1]]:
+            return False
+
+    return True
+
+def serialize_timeline_post(active, username, author, timestamp, text):
+    """<active><username><author><timestamp><text>"""
+    if not isinstance(active, bool):
+        raise TypeError('"active" must be a boolean')
+
+    elif not isinstance(username, str):
+        raise TypeError('"username" must be a string"')
+
+    elif len(username) > UserFieldSizes.username:
+        raise ValueError('max. size of username = %d' % UserFieldSizes.username)
+
+    elif not isinstance(author, str):
+        raise TypeError('"author" must be a string"')
+
+    elif len(author) > UserFieldSizes.username:
+        raise ValueError('max. size of author = %d' % UserFieldSizes.username)
+
+    elif not isinstance(text, str):
+        raise TypeError('"text" must be a string"')
+
+    elif len(text) > UserFieldSizes.text:
+        raise ValueError('max. size of text = %d' % UserFieldSizes.text)
+
+    active = '1' if active else '0'
+    username = pad(username, UserFieldSizes.username)
+    author = pad(author, UserFieldSizes.username)
+    timestamp = str(int(timestamp))
+    text = pad(text, UserFieldSizes.text)
+
+    return '%s%s%s%s%s' % (active, username, author, timestamp, text)
+
+def deserialize_timeline_post(serialized):
+    Bounds = SerializedTimelinePostBounds
+
+    return dict(
+        active=True if serialized[Bounds.active[0]] == '1' else False,
+        username=unpad(serialized[Bounds.username[0]:Bounds.username[1]]),
+        author=unpad(serialized[Bounds.author[0]:Bounds.author[1]]),
+        timestamp=serialized[Bounds.timestamp[0]:Bounds.timestamp[1]],
+        text=unpad(serialized[Bounds.text[0]:Bounds.text[1]])
+    )
+
+def matches_timeline_post(serialized, active=None, username=None, author=None,
+    timestamp=None, text=None):
+
+    Bounds = SerializedTimelinePostBounds
+
+    if active is not None:
+         if (active == True and serialized[Bounds.active[0]] != '1') or \
+            (active == False and serialized[Bounds.active[0]] != '0'):
+            return False
+
+    if username is not None:
+        if pad(username, UserFieldSizes.username) != \
+            serialized[Bounds.username[0]:Bounds.username[1]]:
+            return False
+
+    if author is not None:
+        if pad(author, UserFieldSizes.username) != \
+            serialized[Bounds.author[0]:Bounds.author[1]]:
+            return False
+
+    if timestamp is not None:
+        if str(int(timestamp)) != \
+            serialized[Bounds.timestamp[0]:Bounds.timestamp[1]]:
+            return False
+
+    if text is not None:
+        if pad(text, UserFieldSizes.text) != serialized[Bounds.text[0]:Bounds.text[1]]:
             return False
 
     return True
