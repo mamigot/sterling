@@ -7,6 +7,17 @@ class SerializedSizeBytes:
     post = 1 + UserFieldSizes.username + 10 + UserFieldSizes.text
     relation = 1 + UserFieldSizes.username + 1 + UserFieldSizes.username
 
+class SerializedPostBounds:
+    active = (0,)
+    username = (1, UserFieldSizes.username + 1)
+    timestamp = (UserFieldSizes.username + 1, UserFieldSizes.username + 11)
+    text = (UserFieldSizes.username + 11, UserFieldSizes.username + 11 + UserFieldSizes.text)
+
+class SerializedRelationBounds:
+    active = (0,)
+    first_username = (1, UserFieldSizes.username + 1)
+    direction = (UserFieldSizes.username + 1,)
+    second_username = (UserFieldSizes.username + 2, 2 * UserFieldSizes.username + 2)
 
 def serialize_credential(active, username, password):
     """<active><username><password>"""
@@ -62,14 +73,37 @@ def serialize_post(active, username, timestamp, text):
 
     return '%s%s%s%s' % (active, username, timestamp, text)
 
-def matches_post(serialized, active, username, timestamp, text=None):
-    if text:
-        return serialized == serialize_post(active, username, timestamp, text)
+def deserialize_post(serialized):
+    SPB = SerializedPostBounds
 
-    exclude = -1 * (UserFieldSizes.text + 1)
+    return dict(
+        active=True if serialized[SPB.active[0]] == '1' else False,
+        username=unpad(serialized[SPB.username[0]:SPB.username[1]]),
+        timestamp=serialized[SPB.timestamp[0]:SPB.timestamp[1]],
+        text=unpad(serialized[SPB.text[0]:SPB.text[1]])
+    )
 
-    return serialized[:exclude] == \
-        serialize_post(active, username, timestamp, text='dummy')[:exclude]
+def matches_post(serialized, active=None, username=None, timestamp=None, text=None):
+    SPB = SerializedPostBounds
+
+    if active is not None:
+         if (active == True and serialized[SPB.active[0]] != '1') or \
+            (active == False and serialized[SPB.active[0]] != '0'):
+            return False
+
+    if username is not None:
+        if pad(username, UserFieldSizes.username) != serialized[SPB.username[0]:SPB.username[1]]:
+            return False
+
+    if timestamp is not None:
+        if str(int(timestamp)) != serialized[SPB.timestamp[0]:SPB.timestamp[1]]:
+            return False
+
+    if text is not None:
+        if pad(text, UserFieldSizes.text) != serialized[SPB.text[0]:SPB.text[1]]:
+            return False
+
+    return True
 
 def serialize_relation(active, first_username, direction, second_username):
     """<active><first_username><direction><second_username>"""
@@ -90,6 +124,16 @@ def serialize_relation(active, first_username, direction, second_username):
     second_username = pad(second_username, UserFieldSizes.username)
 
     return '%s%s%s%s' % (active, first_username, direction, second_username)
+
+def deserialize_relation(serialized):
+    SRB = SerializedRelationBounds
+
+    return dict(
+        active=True if serialized[SRB.active[0]] == '1' else False,
+        first_username=unpad(serialized[SRB.first_username[0]:SRB.first_username[1]]),
+        direction=serialized[SRB.direction[0]],
+        second_username=unpad(serialized[SRB.second_username[0]:SRB.second_username[1]])
+    )
 
 def matches_relation(serialized, active, first_username, direction, second_username=None):
     if second_username:
