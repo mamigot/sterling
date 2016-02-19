@@ -1,7 +1,7 @@
 {% if username %}
   {% import '_forms.html' as forms %}
 
-  <span style="display:inline">Hey, <em>{{ username }}</em> &nbsp;</span>
+  <span style="display:inline">Well hello, <b><em>{{ username }}<em></b> &nbsp;</span>
 
   <a href="{{ url_for('timeline') }}"><input type="button" value="Timeline"></a>
   <a href="{{ url_for('profile') }}"><input type="button" value="Profile"></a>

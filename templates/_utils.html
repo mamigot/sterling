@@ -15,6 +15,8 @@
 {% endmacro %}
 
 {% macro show_users(usernames) %}
+  {% if not usernames %}Literally <em>none</em>.{% endif %}
+
   {% for username in usernames %}
     <em>
       <a href="{{ url_for('profile', secondary_username=username) }}">{{ username }}</a>
