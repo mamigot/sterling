@@ -270,7 +270,59 @@ class User:
         If the user's relation to his friend is new (would know after iterating
         through the relevant file), serialize it and append it to that file.
         """
-        pass
+        relation_path = utils.get_path(self.username, StoredFileType.relation)
+
+        match_location = utils.item_match(
+            file_path=relation_path,
+            item_size=utils.SerializedSizeBytes.relation,
+            compare_func=utils.matches_relation,
+            compare_kwargs={
+                'active':False,
+                'first_username':self.username,
+                'direction':'>',
+                'second_username':friend.username
+            }
+        )
+
+        if match_location:
+            with open(relation_path, 'rb+') as f:
+                f.seek(match_location, os.SEEK_END)
+                f.write('1'.encode('utf-8'))
+        else:
+            with open(relation_path, 'a') as f:
+                f.write(utils.serialize_relation(
+                    active=True,
+                    first_username=self.username,
+                    direction='>',
+                    second_username=friend.username
+                ))
+
+        relation_path = utils.get_path(friend.username, StoredFileType.relation)
+
+        match_location = utils.item_match(
+            file_path=relation_path,
+            item_size=utils.SerializedSizeBytes.relation,
+            compare_func=utils.matches_relation,
+            compare_kwargs={
+                'active':False,
+                'first_username':friend.username,
+                'direction':'<',
+                'second_username':self.username
+            }
+        )
+
+        if match_location:
+            with open(relation_path, 'rb+') as f:
+                f.seek(match_location, os.SEEK_END)
+                f.write('1'.encode('utf-8'))
+        else:
+            with open(relation_path, 'a') as f:
+                f.write(utils.serialize_relation(
+                    active=True,
+                    first_username=friend.username,
+                    direction='<',
+                    second_username=self.username
+                ))
 
     def unfollow(self, friend):
         """
@@ -284,7 +336,24 @@ class User:
         the user's and the friend's usernames, mark it as "inactive" (overwrite
         this byte).
         """
-        pass
+        relation_path = utils.get_path(self.username, StoredFileType.relation)
+
+        match_location = utils.item_match(
+            file_path=relation_path,
+            item_size=utils.SerializedSizeBytes.relation,
+            compare_func=utils.matches_relation,
+            compare_kwargs={
+                'active':True,
+                'first_username':self.username,
+                'direction':'>',
+                'second_username':friend.username
+            }
+        )
+
+        if match_location:
+            with open(relation_path, 'rb+') as f:
+                f.seek(match_location, os.SEEK_END)
+                f.write('0'.encode('utf-8'))
 
     def get_followers(self, limit=20):
         """
@@ -293,7 +362,25 @@ class User:
         Iterate over the user's relations file and return all which are
         active and contain an inbound link (direction "<").
         """
-        return []
+        serialized_relations = utils.item_match_sweep(
+            file_path=utils.get_path(self.username, StoredFileType.relation),
+            item_size=utils.SerializedSizeBytes.relation,
+            compare_func=utils.matches_relation,
+            compare_kwargs={
+                'active':True,
+                'first_username':self.username,
+                'direction':'<'
+            },
+            limit=limit
+        )
+
+        followers = []
+
+        for serialized in serialized_relations:
+            deserialized = utils.deserialize_relation(serialized)
+            followers.append(User(username=deserialized.get('second_username')))
+
+        return followers
 
     def get_friends(self, limit=20):
         """
@@ -302,14 +389,46 @@ class User:
         Iterate over the user's relations file and return all which are
         active and contain an outbound link (direction ">").
         """
-        return []
+        serialized_relations = utils.item_match_sweep(
+            file_path=utils.get_path(self.username, StoredFileType.relation),
+            item_size=utils.SerializedSizeBytes.relation,
+            compare_func=utils.matches_relation,
+            compare_kwargs={
+                'active':True,
+                'first_username':self.username,
+                'direction':'>'
+            },
+            limit=limit
+        )
+
+        friends = []
+
+        for serialized in serialized_relations:
+            deserialized = utils.deserialize_relation(serialized)
+            friends.append(User(username=deserialized.get('second_username')))
+
+        return friends
 
     def is_following(self, friend):
         """
         Iterate over the user's relations file and return True if the user
         is following his friend –marked by an outbound link (direction ">").
         """
-        return True
+        relation_path = utils.get_path(self.username, StoredFileType.relation)
+
+        match_location = utils.item_match(
+            file_path=relation_path,
+            item_size=utils.SerializedSizeBytes.relation,
+            compare_func=utils.matches_relation,
+            compare_kwargs={
+                'active':True,
+                'first_username':self.username,
+                'direction':'>',
+                'second_username':friend.username
+            }
+        )
+
+        return match_location is not None
 
 class Post:
     def __init__(self, active, username, timestamp, text):
