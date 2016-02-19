@@ -26,5 +26,9 @@
 
 {% block content %}
   <hr><hr>
-  {{ utils.show_posts(posts, deleteable=True) }}
+  {% if secondary_username %}
+    {{ utils.show_posts(posts, deleteable=False) }}
+  {% else %}
+    {{ utils.show_posts(posts, deleteable=False) }}
+  {% endif %}
 {% endblock %}
