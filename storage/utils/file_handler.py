@@ -25,6 +25,6 @@ def item_match(file_path, item_size, compare_func, compare_kwargs={}):
             item = f.read(item_size)
 
             if compare_func(item, **compare_kwargs):
-                return read_ptr
+                return -read_ptr
 
             read_ptr += item_size
