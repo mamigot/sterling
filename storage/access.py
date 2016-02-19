@@ -359,6 +359,18 @@ class User:
             }
         )
 
+        utils.set_active_flag(
+            active_flag=False,
+            file_path=utils.get_path(self.username, StoredFileType.post_timeline),
+            item_size=utils.SerializedSizeBytes.timeline_post,
+            compare_func=utils.matches_timeline_post,
+            compare_kwargs={
+                'active':True,
+                'username':self.username,
+                'author':friend.username,
+            }
+        )
+
     def get_followers(self, limit=20):
         """
         (Followers are users who follow this one)
