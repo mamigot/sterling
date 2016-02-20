@@ -90,6 +90,11 @@ def serialize_credential(active, username, password):
     returned as a string:
 
     <active><username><password>
+
+    Args:
+        active (bool): True if the credential is valid, False otherwise
+        username (str): username of the user
+        password (str): password of the user
     """
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
@@ -140,6 +145,12 @@ def serialize_profile_post(active, username, timestamp, text):
     returned as a string:
 
     <active><username><timestamp><text>
+
+    Args:
+        active (bool): True if the credential is valid, False otherwise
+        username (str): author of the post
+        timestamp (time.time): timestamp of the post
+        text (str): text of the post
     """
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
@@ -204,6 +215,13 @@ def serialize_timeline_post(active, username, author, timestamp, text):
     returned as a string:
 
     <active><username><author><timestamp><text>
+
+    Args:
+        active (bool): True if the credential is valid, False otherwise
+        username (str): user on whose timeline this post belongs
+        author (str): author of the post
+        timestamp (time.time): timestamp of the post
+        text (str): text of the post
     """
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
@@ -284,6 +302,15 @@ def serialize_relation(active, first_username, direction, second_username):
     returned as a string:
 
     <active><first_username><direction><second_username>
+
+    This is like a directed edge on a graph of relationships, where its direction
+    is determined by the `direction` param.: either '>' (forward) or '<' (backward).
+
+    Args:
+        active (bool): True if the credential is valid, False otherwise
+        first_username (str): user on whose timeline this post belongs
+        direction (str): author of the post
+        second_username (str): user on whose timeline this post belongs
     """
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
