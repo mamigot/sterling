@@ -50,11 +50,11 @@ The following source, in addition to [ref.1](http://dl.acm.org/citation.cfm?id=1
 
 > -[The Architecture Twitter Uses...](http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html)
 
-Simply, Twitter, etc. are able to maximize efficiency by "copying" the posts that a user writes to all of his followers' timelines (technically they store references into in-memory databases, but the point remains). That is why a tweet by Lady Gaga who has 31M followers might take as long as [five minutes](http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html) to show up across all of her follower's timelines.
+Simply, Twitter, etc. are able to maximize efficiency by "copying" the posts that a user writes to all of his followers' timelines (technically they store references into in-memory databases, but the point remains). That is why a post by Lady Gaga who has 31M followers might take as long as [five minutes](http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html) to show up across all of her followers' timelines.
 
 Though only through text files, this project strives for a similar objective. That is, instead of responding to your `timeline/` request by assembling a list of all of the users you follow, aggregating their most recent posts and ordering them chronologically, it _only has to read from a single file_.
 
-Consequently, writes are designed to be fairly slow in comparison. When a user saves a post, it has to be stored in not only the file wherein he keeps his own tweets, but also in his users' timeline files. Thus, each user keeps track of the tweets he authored in one file (`post_profile_*.txt`) and of those that he is supposed to see in another (`post_timeline_*.txt`).
+Consequently, writes are designed to be fairly slow in comparison. When a user saves a post, it has to be stored in not only the file wherein he keeps his own posts, but also in his users' timeline files. Thus, each user keeps track of the posts he authored in one file (`post_profile_*.txt`) and of those that he is supposed to see in another (`post_timeline_*.txt`).
 
 In order to further increase the efficiency with which reads are made, the files with the relevant posts are read backwards. As shown in "Serialization" below, this is simple once an entry is programmed to be of a certain length (iterating is as simply as decrementing a pointer by a fixed number of bytes).
 
@@ -78,7 +78,7 @@ This is believed to be more efficient than two extreme alternatives:
 1. Put all users' information of a given type (maintain the distinction between credentials, relations, etc.) in the same file.
 2. Have one type of file per user.
 
-Though the first case would be beneficial because it is likely that all users' data will be contained in memory (once the OS reads the file into memory, it will remain there as long as it is not too large, and users will be able to reference its data without prompting additional I/O operations), it will require iterating over a lot of entries that will ultimately be discarded. The second alternative would prompt an I/O operation for essentially every user, which would be more costly than iterating through many irrelevant entries (as long as we are iterating from the back and retrieving tens of posts as opposed to thousands).
+Though the first case would be beneficial because it is likely that all users' data will be contained in memory (once the OS reads the file into memory, it will remain there as long as it is not too large, and users will be able to reference its data without prompting additional I/O operations), it will require iterations over a lot of entries that will ultimately be discarded. The second alternative would prompt an I/O operation for essentially every user, which would be more costly than iterating through many irrelevant entries (as long as we are iterating from the back and retrieving tens of posts as opposed to thousands).
 
 ### Serialization
 In order to efficiently iterate over the data in the text files, each type of data is serialized according to a given format that keeps its size uniform. For example, regardless of whether a post takes up 4 or 40 characters, it will be stored as a 140-character one. The same applies to usernames and passwords. (These sizes are specified by `UserFieldSizes` in `storage/config.py`.)
