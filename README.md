@@ -29,6 +29,13 @@ Start by creating the files which are used for storage and start the server by r
 
 Go to [http://127.0.0.1:5000/](http://127.0.0.1:5000/).
 
+#### Possible workflow:
+- Create `$ACCOUNT_1`
+- Sign out and create `$ACCOUNT_2`
+- Go to `$ACCOUNT_1`'s profile (`http://127.0.0.1:5000/profile/$ACCOUNT_1`) and follow him
+- Sign out and log in with `$ACCOUNT_1` to write a post
+- Sign out and log in with `$ACCOUNT_2` to view that post on your timeline
+
 ## Architecture
 Flask application communicating with a Python-based backend whose data is stored across several files of multiple types –there's a type for credential information (usernames and passwords), another type for relations (friends and followers), and two that store the actual posts.
 
