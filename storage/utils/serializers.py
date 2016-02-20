@@ -3,12 +3,29 @@ from ..config import UserFieldSizes
 
 
 class SerializedSizeBytes:
+    """Denotes the serialized size of each type of field.
+
+    These are calculated from UserFieldSizes as well as from their positions
+    relative to each other. This class only exists to provide a clean
+    summary of these sizes.
+
+    To understand where each field comes from, look at:
+        - serialize_credential()
+        - serialize_profile_post()
+        - serialize_timeline_post()
+        - serialize_relation()
+    """
     credential = 1 + UserFieldSizes.username + UserFieldSizes.password
     profile_post = 1 + UserFieldSizes.username + 10 + UserFieldSizes.text
     timeline_post = 1 + 2 * UserFieldSizes.username + 10 + UserFieldSizes.text
     relation = 1 + UserFieldSizes.username + 1 + UserFieldSizes.username
 
 class SerializedCredentialBounds:
+    """Denotes the location of each field in a serialized credential
+    (starting and ending bytes).
+
+    To understand this field, look at serialize_credential()
+    """
     active = (0,)
     username = (1, UserFieldSizes.username + 1)
     password = (
@@ -17,6 +34,11 @@ class SerializedCredentialBounds:
     )
 
 class SerializedProfilePostBounds:
+    """Denotes the location of each field in a serialized profile post
+    (starting and ending bytes).
+
+    To understand this field, look at serialize_profile_post()
+    """
     active = (0,)
     username = (1, UserFieldSizes.username + 1)
     timestamp = (
@@ -29,6 +51,11 @@ class SerializedProfilePostBounds:
     )
 
 class SerializedTimelinePostBounds:
+    """Denotes the location of each field in a serialized timeline post
+    (starting and ending bytes).
+
+    To understand this field, look at serialize_timeline_post()
+    """
     active = (0,)
     username = (1, UserFieldSizes.username + 1)
     author = (
@@ -45,6 +72,11 @@ class SerializedTimelinePostBounds:
     )
 
 class SerializedRelationBounds:
+    """Denotes the location of each field in a serialized relation
+    (starting and ending bytes).
+
+    To understand this field, look at serialize_relation_post()
+    """
     active = (0,)
     first_username = (1, UserFieldSizes.username + 1)
     direction = (UserFieldSizes.username + 1,)
@@ -54,7 +86,11 @@ class SerializedRelationBounds:
     )
 
 def serialize_credential(active, username, password):
-    """<active><username><password>"""
+    """Combine the provided parameters into the following format, which is
+    returned as a string:
+
+    <active><username><password>
+    """
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
 
@@ -77,6 +113,9 @@ def serialize_credential(active, username, password):
     return '%s%s%s' % (active, username, password)
 
 def matches_credential(serialized, active=None, username=None, password=None):
+    """Determine whether the provided parameters match the serialized
+    credential.
+    """
     Bounds = SerializedCredentialBounds
 
     if active is not None:
@@ -97,7 +136,11 @@ def matches_credential(serialized, active=None, username=None, password=None):
     return True
 
 def serialize_profile_post(active, username, timestamp, text):
-    """<active><username><timestamp><text>"""
+    """Combine the provided parameters into the following format, which is
+    returned as a string:
+
+    <active><username><timestamp><text>
+    """
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
 
@@ -121,6 +164,7 @@ def serialize_profile_post(active, username, timestamp, text):
     return '%s%s%s%s' % (active, username, timestamp, text)
 
 def deserialize_profile_post(serialized):
+    """Parse the serialized profile post and build a dictionary with its parameters."""
     Bounds = SerializedProfilePostBounds
 
     return dict(
@@ -131,6 +175,7 @@ def deserialize_profile_post(serialized):
     )
 
 def matches_profile_post(serialized, active=None, username=None, timestamp=None, text=None):
+    """Determine whether the provided parameters match the serialized profile post."""
     Bounds = SerializedProfilePostBounds
 
     if active is not None:
@@ -155,7 +200,11 @@ def matches_profile_post(serialized, active=None, username=None, timestamp=None,
     return True
 
 def serialize_timeline_post(active, username, author, timestamp, text):
-    """<active><username><author><timestamp><text>"""
+    """Combine the provided parameters into the following format, which is
+    returned as a string:
+
+    <active><username><author><timestamp><text>
+    """
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
 
@@ -186,6 +235,7 @@ def serialize_timeline_post(active, username, author, timestamp, text):
     return '%s%s%s%s%s' % (active, username, author, timestamp, text)
 
 def deserialize_timeline_post(serialized):
+    """Parse the serialized timeline post and build a dictionary with its parameters."""
     Bounds = SerializedTimelinePostBounds
 
     return dict(
@@ -198,7 +248,9 @@ def deserialize_timeline_post(serialized):
 
 def matches_timeline_post(serialized, active=None, username=None, author=None,
     timestamp=None, text=None):
-
+    """Determine whether the provided parameters match the serialized
+    timeline post.
+    """
     Bounds = SerializedTimelinePostBounds
 
     if active is not None:
@@ -228,7 +280,11 @@ def matches_timeline_post(serialized, active=None, username=None, author=None,
     return True
 
 def serialize_relation(active, first_username, direction, second_username):
-    """<active><first_username><direction><second_username>"""
+    """Combine the provided parameters into the following format, which is
+    returned as a string:
+
+    <active><first_username><direction><second_username>
+    """
     if not isinstance(active, bool):
         raise TypeError('"active" must be a boolean')
 
@@ -248,6 +304,7 @@ def serialize_relation(active, first_username, direction, second_username):
     return '%s%s%s%s' % (active, first_username, direction, second_username)
 
 def deserialize_relation(serialized):
+    """Parse the serialized relation and build a dictionary with its parameters."""
     SRB = SerializedRelationBounds
 
     return dict(
@@ -258,6 +315,9 @@ def deserialize_relation(serialized):
     )
 
 def matches_relation(serialized, active, first_username, direction, second_username=None):
+    """Determine whether the provided parameters match the serialized
+    relation.
+    """
     if second_username:
         return serialized == serialize_relation(active, first_username, \
             direction, second_username)
