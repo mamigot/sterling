@@ -1,6 +1,7 @@
 from functools import wraps
-from flask import Flask, g, session, render_template, request, redirect, url_for
-from storage import User
+from flask import Flask, g, session, render_template, request, redirect, \
+    url_for, flash
+from storage import access, User
 
 app = Flask(__name__)
 
@@ -20,46 +21,50 @@ def login_required(f):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Save the user's credentials from the form in the system
         user = User(request.form['username'], request.form['password'])
-        user.save_credential()
 
-        # Proceed once we know the credential are stored
-        if user.verify_credential():
+        try:
+            # Proceed once we know the credential is stored
+            user.save_credential()
             session['username'] = user.username
             return redirect(url_for('timeline'))
+        except access.UsernameAlreadyExists:
+            flash('Unsuccessful registration –username already exists')
 
     return render_template('register.html')
 
 @app.route('/deactivate', methods=['GET', 'POST'])
 def deactivate():
     if request.method == 'POST':
-        # Verify the user's credentials and delete them as instructed
         user = User(request.form['username'], request.form['password'])
 
-        if user.verify_credential():
+        try:
             user.delete_credential()
-            return redirect(url_for('register'))
+            flash('Successful deactivation')
+        except access.CannotVerifyCredential:
+            flash('Failed deactivation –cannot verify the credential')
 
     return render_template('deactivate.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Verify the user's credentials and redirect him to his timeline
         user = User(request.form['username'], request.form['password'])
 
-        if user.verify_credential():
+        try:
+            user.verify_credential()
             session['username'] = user.username
             return redirect(url_for('timeline'))
+        except access.CannotVerifyCredential:
+            flash('Failed login –cannot verify the credential')
 
     return render_template('login.html')
 
 @app.route('/signout', methods=['GET', 'POST'])
 @login_required
 def sign_out():
-    # Delete the 'username' key from the session dict
     session.pop('username')
+    flash('Successful signout')
     return redirect(url_for('login'))
 
 @app.route('/')

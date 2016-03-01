@@ -9,6 +9,16 @@
 </head>
 
 <body>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <em>
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </em>
+    {% endif %}
+  {% endwith %}
+
   <h2>{% block heading %}{% endblock %}</h2>
   {% block content %}{% endblock %}
 </body>
