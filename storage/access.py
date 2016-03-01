@@ -10,7 +10,7 @@ from .config import StoredFileType
 class UsernameAlreadyExists(Exception):
     pass
 
-class UsernameDoesNotExist(Exception):
+class CannotVerifyCredential(Exception):
     pass
 
 class User:
@@ -42,6 +42,11 @@ class User:
 
         If the relevant file does not contain a match for that username, serialize
         the login data (active, username, password) and append it to the file.
+
+        Raises:
+            AttributeError: If the User object does not contain a password
+            UsernameAlreadyExists: If the provided username already exists in
+                the system
         """
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
@@ -74,6 +79,11 @@ class User:
         Find the relevant file with the accounts and return True iff there's an
         entry marked "active" that matches the user's username and password.
         Otherwise, return False.
+
+        Raises:
+            AttributeError: If the User object does not contain a password
+            CannotVerifyCredential: If there's no active match for the given
+                (username, password) combination
         """
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
@@ -89,13 +99,19 @@ class User:
             }
         )
 
-        return match_location is not None
+        if match_location is None:
+            raise CannotVerifyCredential()
 
     def delete_credential(self):
         """
         Find the relevant file with the accounts and, if there is a match for
         the user's username and password, mark it as "inactive" (overwrite this
         byte).
+
+        Raises:
+            AttributeError: If the User object does not contain a password
+            CannotVerifyCredential: If there's no active match for the given
+                (username, password) combination
         """
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
@@ -113,7 +129,7 @@ class User:
         )
 
         if num_modified == 0:
-            raise UsernameDoesNotExist('Username "%s"' % self.username)
+            raise CannotVerifyCredential()
 
     def save_post(self, text):
         """
