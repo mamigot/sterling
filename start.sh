@@ -4,7 +4,7 @@
 #
 
 # Uncomment the following if your current environment's requirements.txt differ
-#pip install requirements.txt
+#pip install -r requirements.txt
 
 PYTHON_VERSION=python3
 
