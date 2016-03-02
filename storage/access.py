@@ -21,7 +21,7 @@ class User:
     def exists(self):
         """
         Find the relevant file with the accounts and check if the wanted account
-        exists (either active or inactive). If so, output True
+        exists and it's active. If so, output True.
         """
         credential_path = utils.get_path(self.username, StoredFileType.credential)
 
@@ -29,7 +29,7 @@ class User:
             file_path=credential_path,
             item_size=utils.SerializedSizeBytes.credential,
             compare_func=utils.matches_credential,
-            compare_kwargs={'username':self.username}
+            compare_kwargs={'active':True, 'username':self.username}
         )
 
         return match_location is not None
@@ -108,6 +108,8 @@ class User:
         the user's username and password, mark it as "inactive" (overwrite this
         byte).
 
+        Before deactivating the account, it deletes all posts written by the user.
+
         Raises:
             AttributeError: If the User object does not contain a password
             CannotVerifyCredential: If there's no active match for the given
@@ -115,6 +117,9 @@ class User:
         """
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
+
+        for post in self.get_profile_posts(limit=None):
+            self.delete_post(post.timestamp)
 
         num_modified = utils.set_active_flag(
             active_flag=False,
@@ -210,8 +215,8 @@ class User:
             utils.set_active_flag(
                 active_flag=False,
                 file_path=utils.get_path(follower.username, StoredFileType.post_timeline),
-                item_size=utils.SerializedSizeBytes.profile_post,
-                compare_func=utils.matches_profile_post,
+                item_size=utils.SerializedSizeBytes.timeline_post,
+                compare_func=utils.matches_timeline_post,
                 compare_kwargs={
                     'active':True,
                     'username':follower.username,
