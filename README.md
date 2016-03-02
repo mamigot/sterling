@@ -81,7 +81,7 @@ This is believed to be more efficient than two extreme alternatives:
 Though the first case would be beneficial because it is likely that all users' data will be contained in memory (once the OS reads the file into memory, it will remain there as long as it is not too large, and users will be able to reference its data without prompting additional I/O operations), it will require iterations over a lot of entries that will ultimately be discarded. The second alternative would prompt an I/O operation for essentially every user, which would be more costly than iterating through many irrelevant entries (as long as we are iterating from the back and retrieving tens of posts as opposed to thousands).
 
 ### Serialization
-In order to efficiently iterate over the data in the text files, each type of data is serialized according to a given format that keeps its size uniform. For example, regardless of whether a post takes up 4 or 40 characters, it will be stored as a 140-character one. The same applies to usernames and passwords. (These sizes are specified by `UserFieldSizes` in `storage/config.py`.)
+In order to efficiently iterate over the data in the text files, each type of data is serialized according to a given format that keeps its size uniform. For example, regardless of whether a post takes up 4 or 40 characters, it will be stored as a 100-character one. The same applies to usernames and passwords. (These sizes are specified by `UserFieldSizes` in `storage/config.py`.)
 
 The following serialization formats are enforced by `storage/utils/serializers.py`, which convert sets of parameters to strings depending on the relevant field (documented in this module):
 

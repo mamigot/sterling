@@ -27,7 +27,7 @@ class UserFieldSizes:
     """The maximum size for each field that the user is responsible for."""
     username = 20
     password = 20
-    text = 140
+    text = 100
 
 
 def initiate_storage():
