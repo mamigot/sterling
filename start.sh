@@ -21,7 +21,17 @@ if [ -z "$(ls $STORAGE_FILES 2>/dev/null)" ]; then
   $PYTHON_VERSION storage/config.py
 fi
 
+##############################################
+# Append the project's modules to PYTHONPATH #
+##############################################
+export PROJECT_ROOT=$PWD
+export PYTHONPATH=$PYTHONPATH:$PROJECT_ROOT
+
+for dir in $PROJECT_ROOT/*; do
+	export PYTHONPATH=$PYTHONPATH:$dir
+done
+
 ###########################################
 # Launch the app (http://127.0.0.1:5000/) #
 ###########################################
-$PYTHON_VERSION app.py
+$PYTHON_VERSION web/app.py
