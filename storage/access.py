@@ -34,6 +34,34 @@ class User:
 
         return match_location is not None
 
+    def verify_credential(self):
+        """
+        Find the relevant file with the accounts and return True iff there's an
+        entry marked "active" that matches the user's username and password.
+        Otherwise, return False.
+
+        Raises:
+            AttributeError: If the User object does not contain a password
+            CannotVerifyCredential: If there's no active match for the given
+                (username, password) combination
+        """
+        if not hasattr(self, 'password'):
+            raise AttributeError("Provide the user's password.")
+
+        match_location = utils.item_match(
+            file_path=utils.get_path(self.username, StoredFileType.credential),
+            item_size=utils.SerializedSizeBytes.credential,
+            compare_func=utils.matches_credential,
+            compare_kwargs={
+                'active':True,
+                'username':self.username,
+                'password':self.password
+            }
+        )
+
+        if match_location is None:
+            raise CannotVerifyCredential()
+
     def save_credential(self):
         """
         Find the relevant file with the accounts and check if the wanted account
@@ -73,34 +101,6 @@ class User:
                     username=self.username,
                     password=self.password
                 ))
-
-    def verify_credential(self):
-        """
-        Find the relevant file with the accounts and return True iff there's an
-        entry marked "active" that matches the user's username and password.
-        Otherwise, return False.
-
-        Raises:
-            AttributeError: If the User object does not contain a password
-            CannotVerifyCredential: If there's no active match for the given
-                (username, password) combination
-        """
-        if not hasattr(self, 'password'):
-            raise AttributeError("Provide the user's password.")
-
-        match_location = utils.item_match(
-            file_path=utils.get_path(self.username, StoredFileType.credential),
-            item_size=utils.SerializedSizeBytes.credential,
-            compare_func=utils.matches_credential,
-            compare_kwargs={
-                'active':True,
-                'username':self.username,
-                'password':self.password
-            }
-        )
-
-        if match_location is None:
-            raise CannotVerifyCredential()
 
     def delete_credential(self):
         """
@@ -281,6 +281,27 @@ class User:
 
         return [Post(**utils.deserialize_profile_post(sp)) for sp in serialized_posts]
 
+    def is_following(self, friend):
+        """
+        Iterate over the user's relations file and return True if the user
+        is following his friend –marked by an outbound link (direction ">").
+        """
+        relation_path = utils.get_path(self.username, StoredFileType.relation)
+
+        match_location = utils.item_match(
+            file_path=relation_path,
+            item_size=utils.SerializedSizeBytes.relation,
+            compare_func=utils.matches_relation,
+            compare_kwargs={
+                'active':True,
+                'first_username':self.username,
+                'direction':'>',
+                'second_username':friend.username
+            }
+        )
+
+        return match_location is not None
+
     def follow(self, friend):
         """
         Save the user's "follow" under his "relations" file, as well as in
@@ -445,27 +466,6 @@ class User:
             friends.append(User(username=deserialized.get('second_username')))
 
         return friends
-
-    def is_following(self, friend):
-        """
-        Iterate over the user's relations file and return True if the user
-        is following his friend –marked by an outbound link (direction ">").
-        """
-        relation_path = utils.get_path(self.username, StoredFileType.relation)
-
-        match_location = utils.item_match(
-            file_path=relation_path,
-            item_size=utils.SerializedSizeBytes.relation,
-            compare_func=utils.matches_relation,
-            compare_kwargs={
-                'active':True,
-                'first_username':self.username,
-                'direction':'>',
-                'second_username':friend.username
-            }
-        )
-
-        return match_location is not None
 
 class Post:
     def __init__(self, active, username, timestamp, text):
