@@ -1,3 +1,12 @@
+"""
+PAD before sending and DESERIALIZE whatever's returned
+
+(this way, the server knows how many bytes it should expect to receive
+and the client knows how many bytes to expect)
+"""
+from . import config
+
+
 class UsernameAlreadyExists(Exception):
     pass
 

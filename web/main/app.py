@@ -1,7 +1,8 @@
 from functools import wraps
-from flask import Flask, g, session, render_template, request, redirect, \
-    url_for, flash
+from flask import Flask, session, render_template, request, redirect, url_for, flash
 from storage import access, User
+import routes
+
 
 app = Flask(__name__)
 
@@ -160,6 +161,7 @@ def post():
         user.delete_post(request.form.get('timestamp'))
 
     return redirect(url_for('profile'))
+
 
 if __name__ == '__main__':
     app.secret_key = 'badsecretkey'

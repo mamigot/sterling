@@ -1,8 +1,12 @@
 Sterling
 ========
 
-- **NYU CS3254**: Project (Part I)
+- **NYU CS3254**: Project (Part II)
 - Miguel Amigot [m.amigot@nyu.edu](m.amigot@nyu.edu)
+
+## Modifications (with respect to Part I)
+- See v1.1 release (all of those)
+- Forbid user from creating usernames with non-alphanumeric characters
 
 ## Functionality of the App
 A simple version of Twitter. Users are able to follow each other and write posts, which are reflected on their own profiles as well as on their followers' timelines.
