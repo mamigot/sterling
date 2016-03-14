@@ -1,0 +1,6 @@
+# Ignore any executables
+__pycache__
+*.pyc
+
+# Ignore Mac specific files
+.DS_Store
