@@ -9,7 +9,7 @@ CONFIG_PATH=$PROJECT_ROOT/config
 ############################################
 # Create storage files if they don't exist #
 ############################################
-STORAGE_FILES=$PROJECT_ROOT/main/volumes/
+export STORAGE_FILES_PATH=$PROJECT_ROOT/main/volumes/
 
 if [ -z "$(ls $STORAGE_FILES 2>/dev/null)" ]; then
   # Create the directory holding the files
