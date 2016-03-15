@@ -1,12 +1,9 @@
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <string>
-#include <map>
-#include "config.h"
 #include "filehandler.h"
+#include "utils.h"
+#include "config.h"
 using namespace std;
 
 
@@ -28,7 +25,7 @@ void setConfigParams(void){
     std::istringstream iss(line);
 
     // Skip if the line is empty or starts with a '#' (comment)
-    if(!line.empty() && line.substr(0, 1) != "#"){
+    if(!line.empty() && !startswith(line, "#")){
       // constants and variables are split by a '='
       int divider = line.find("=");
 
@@ -47,14 +44,12 @@ void setStorageFilesPath(void){
 		throw std::runtime_error("STORAGE_FILES_PATH is not set!");
 
 	// Check if the provided directory is valid
-	struct stat info;
-
-	if(stat(path, &info) != 0)
-		throw std::runtime_error("STORAGE_FILES_PATH does not contain a valid path");
-	else if( info.st_mode & S_IFDIR )
-		cerr << "setting STORAGE_FILES_PATH=" << path << "\n";
-
-  STORAGE_FILES_PATH = string(path);
+  if(isValidPath(path)){
+    cerr << "setting STORAGE_FILES_PATH=" << path << "\n";
+    STORAGE_FILES_PATH = string(path);
+  }else{
+    throw std::runtime_error("STORAGE_FILES_PATH does not contain a valid path");
+  }
 }
 
 void initiateStorage(void){
@@ -63,7 +58,7 @@ void initiateStorage(void){
 	string match = "FILE_COUNT_";
 
   for(auto const& x : configParams){
-		if(x.first.substr(0, match.length()).compare(match) == 0){
+		if(startswith(x.first, match)){
 			string fileType = x.first.substr(match.length());
 
 			for(int fileNum = 0; fileNum < x.second; fileNum++){
@@ -71,7 +66,7 @@ void initiateStorage(void){
 				string absPath = STORAGE_FILES_PATH + '/' + fileName;
 
 				// Create the file if it does not exist
-				if(!fileExists(absPath.c_str())){
+				if(isValidPath(absPath)){
 					ofstream createdFile(absPath);
 					cerr << "Adding storage file... " << absPath << "\n";
 				}
