@@ -10,19 +10,30 @@ using namespace std;
 map<string, int> configParams;
 string STORAGE_FILES_PATH;
 
+void setConfigParams(void);
+void setStorageFilesPath(void);
+void initiateStorage(void);
+
+
+void configServer(void){
+  setConfigParams();
+  setStorageFilesPath();
+  initiateStorage();
+}
 
 void setConfigParams(void){
   // Get env. variable to path of txt file with configuration params
+  // (these are constants that are used throughout for serialization, etc.)
   char* configPath = getenv("CONFIG_PATH");
   if(configPath == NULL || strlen(configPath) == 0){
     throw std::runtime_error("CONFIG_PATH is not set!");
   }
 
-  std::ifstream infile(configPath);
+  ifstream infile(configPath);
 
-  std::string line;
+  string line;
   while(std::getline(infile, line)){
-    std::istringstream iss(line);
+    istringstream iss(line);
 
     // Skip if the line is empty or starts with a '#' (comment)
     if(!line.empty() && !startswith(line, "#")){
@@ -66,19 +77,11 @@ void initiateStorage(void){
 				string absPath = STORAGE_FILES_PATH + '/' + fileName;
 
 				// Create the file if it does not exist
-				if(isValidPath(absPath)){
+				if(!isValidPath(absPath)){
 					ofstream createdFile(absPath);
 					cerr << "Adding storage file... " << absPath << "\n";
 				}
 			}
 		}
   }
-}
-
-int main() {
-  setConfigParams();
-
-  setStorageFilesPath();
-
-  initiateStorage();
 }
