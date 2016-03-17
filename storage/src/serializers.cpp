@@ -1,6 +1,5 @@
 #include <iostream>
 #include <sstream>
-#include "config.h"
 #include "serializers.h"
 using namespace std;
 
@@ -268,4 +267,4 @@ string extractField(const string& serialized, string& dataType, string& fieldTyp
 int main(){
   configServer();
 }
-/*
+*/

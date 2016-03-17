@@ -1,38 +1,9 @@
+#ifndef SERIALIZERS_H_
+#define SERIALIZERS_H_
+
 #include <string>
+#include "config.h"
 using namespace std;
-
-
-const char fillerChar = '~';
-
-enum Active {Yes, No, All};
-
-struct Credential{
-  Active active;
-  string username;
-  string password;
-};
-
-struct Relation{
-  Active active;
-  string firstUsername;
-  char direction;
-  string secondUsername;
-};
-
-struct ProfilePost{
-  Active active;
-  string username;
-  string timestamp;
-  string text;
-};
-
-struct TimelinePost{
-  Active active;
-  string username;
-  string author;
-  string timestamp;
-  string text;
-};
 
 
 string serializeCredential(Credential& credential);
@@ -56,3 +27,5 @@ string pad(const string& value, unsigned int fieldSize);
 
 // Remove all starting instances of fillerChar from value
 string unpad(const string& value);
+
+#endif
