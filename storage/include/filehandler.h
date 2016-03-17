@@ -14,6 +14,8 @@ bool isValidPath(const char* path);
 // See "bool isValidPath(const char* path)"
 bool isValidPath(const string& path);
 
+void appendToFile(const string& path, const string& content);
+
 unsigned int getFileSize(const string& path);
 
 int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs);

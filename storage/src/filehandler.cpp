@@ -29,6 +29,13 @@ unsigned int getFileSize(const string& path){
   return in.tellg();
 }
 
+void appendToFile(const string& path, const string& content){
+  std::ofstream outfile;
+
+  outfile.open(path, std::ios_base::app);
+  outfile << content;
+}
+
 int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs){
   if(!configParams.count("FILE_COUNT_" + dataType)){
     throw std::runtime_error("Given dataType is unknown");
@@ -133,10 +140,10 @@ int setActiveFlag(bool active, const string& filePath, string& dataType, map<str
 }
 
 
+/*
 int main(){
   configServer();
 
-  /*
   string username = "petrov";
   string filePath = getStoredFilePath(StoredFileType::CredentialFile, username);
 
@@ -149,5 +156,5 @@ int main(){
   int numModified = setActiveFlag(false, filePath, dataType, matchArgs);
 
   cout << numModified << "\n";
-  */
 }
+*/
