@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sys/stat.h>
 #include "filehandler.h"
-#include "serializers.h" // remove this
+#include "serializers.h"
 using namespace std;
 
 
@@ -28,26 +28,13 @@ unsigned int getFileSize(const string& path){
   return in.tellg();
 }
 
-int itemMatchCredential(const string& storedFilePath, Credential& credential){
-  /*
-  file_size = os.path.getsize(file_path)
+int itemMatch(const string& storedFilePath, string& dataType, map<string, string> matchArgs){
+  if(!configParams.count("FILE_COUNT_" + dataType)){
+    throw std::runtime_error("Given dataType is unknown");
+  }
 
-  with open(file_path, 'rb+') as f:
-      read_ptr = item_size
-
-      while abs(read_ptr) <= abs(file_size):
-          f.seek(-read_ptr, os.SEEK_END)
-          item = f.read(item_size).decode('utf-8')
-
-          if compare_func(item, **compare_kwargs):
-              return read_ptr
-
-          read_ptr += item_size
-
-  return None
-  */
   unsigned int fileSize = getFileSize(storedFilePath);
-  unsigned int itemSize = configParams["SERIAL_SIZE_CREDENTIAL"];
+  unsigned int itemSize = configParams["SERIAL_SIZE_" + dataType];
   int readPtr = itemSize;
 
   FILE* matchedFile;
@@ -60,7 +47,7 @@ int itemMatchCredential(const string& storedFilePath, Credential& credential){
     fread(item, itemSize, 1, matchedFile);
     item[itemSize] = '\0'; // Cap the garbage (without this, garbage is appended)
 
-    if(matchesCredential(string(item), credential)){
+    if(matchesSerialized(string(item), dataType, matchArgs)){
       fclose(matchedFile);
       return readPtr;
     }
@@ -76,20 +63,4 @@ int itemMatchCredential(const string& storedFilePath, Credential& credential){
 int main(){
   configServer();
 
-  string username = "petaarov";
-  string filePath = getStoredFilePath(StoredFileType::CredentialFile, username);
-
-  cout << filePath << "\n";
-
-  //cout << getFileSize(filePath) << "\n";
-
-  Credential cred = {
-    Active::No,
-    "5555user",
-    "5555password"
-  };
-  string ser = serializeCredential(cred);
-  //cout << ser << "\n";
-
-  cout << itemMatchCredential(filePath, cred) << "\n";
 }

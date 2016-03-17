@@ -2,6 +2,7 @@
 #define FILEHANDLER_H_
 
 #include <string>
+#include <map>
 #include "config.h"
 using namespace std;
 
@@ -16,6 +17,6 @@ bool isValidPath(const char* path);
 
 unsigned int getFileSize(const string& path);
 
-int itemMatchCredential(const string& storedFilePath, Credential& credential);
+int itemMatch(const string& storedFilePath, string& dataType, map<string, string> matchArgs);
 
 #endif
