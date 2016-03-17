@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include "config.h"
 using namespace std;
 
@@ -20,7 +21,7 @@ unsigned int getFileSize(const string& path);
 
 int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs);
 
-string itemMatchSweep(const string& filePath, string& dataType, map<string, string> matchArgs, int limit);
+vector<string> itemMatchSweep(const string& filePath, string& dataType, map<string, string> matchArgs, int limit);
 
 int setActiveFlag(bool active, const string& filePath, string& dataType, map<string, string> matchArgs);
 

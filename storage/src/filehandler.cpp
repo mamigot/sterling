@@ -67,7 +67,7 @@ int itemMatch(const string& filePath, string& dataType, map<string, string> matc
   return -1;
 }
 
-string itemMatchSweep(const string& filePath, string& dataType, map<string, string> matchArgs, int limit){
+vector<string> itemMatchSweep(const string& filePath, string& dataType, map<string, string> matchArgs, int limit){
   if(!configParams.count("FILE_COUNT_" + dataType)){
     throw std::runtime_error("Given dataType is unknown");
   }
@@ -79,8 +79,9 @@ string itemMatchSweep(const string& filePath, string& dataType, map<string, stri
   FILE* matchedFile;
   matchedFile = fopen(filePath.c_str(), "r+");
 
-  stringstream allMatches;
-  unsigned int matchCount = 0;
+  vector<string> allMatches;
+  //stringstream allMatches;
+  //unsigned int matchCount = 0;
   char item[itemSize];
 
   while(readPtr <= fileSize){
@@ -89,10 +90,11 @@ string itemMatchSweep(const string& filePath, string& dataType, map<string, stri
     item[itemSize] = '\0'; // Cap the garbage (without this, garbage is appended)
 
     if(matchesSerialized(string(item), dataType, matchArgs)){
-      allMatches << item;
-      matchCount++;
+      allMatches.push_back(item);
+      //allMatches << item;
+      //matchCount++;
 
-      if(limit != -1 && matchCount >= limit){
+      if(limit != -1 && allMatches.size() >= limit){
         break;
       }
     }
@@ -101,7 +103,8 @@ string itemMatchSweep(const string& filePath, string& dataType, map<string, stri
   }
 
   fclose(matchedFile);
-  return allMatches.str();
+  //return allMatches.str();
+  return allMatches;
 }
 
 int setActiveFlag(bool active, const string& filePath, string& dataType, map<string, string> matchArgs){
