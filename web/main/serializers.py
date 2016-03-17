@@ -275,29 +275,27 @@ def matches_timeline_post(serialized, active=None, username=None, author=None,
     timeline post.
     """
     if active is not None:
-        ser = serialized[config.SERIAL_TIMELINE_POST_ACTIVE_START:config.SERIAL_TIMELINE_POST_ACTIVE_END]
+        ser = extract_field(serialized, 'timeline_post', 'active')
         if(active == True and ser != '1' or active == False and ser != '0'):
             return False
 
     if username is not None:
-        ser = serialized[config.SERIAL_TIMELINE_POST_USERNAME_START:config.SERIAL_TIMELINE_POST_USERNAME_END]
+        ser = extract_field(serialized, 'timeline_post', 'username')
         if pad(username, config.FIELD_SIZE_USERNAME) != ser:
             return False
 
     if author is not None:
-        ser = serialized[config.SERIAL_TIMELINE_POST_AUTHOR_START:config.SERIAL_TIMELINE_POST_AUTHOR_END]
+        ser = extract_field(serialized, 'timeline_post', 'author')
         if pad(author, config.FIELD_SIZE_USERNAME) != ser:
             return False
 
     if timestamp is not None:
-        ser = serialized[config.SERIAL_TIMELINE_POST_TIMESTAMP_START:config.SERIAL_TIMELINE_POST_TIMESTAMP_END]
+        ser = extract_field(serialized, 'timeline_post', 'timestamp')
         if str(int(timestamp)) != ser:
             return False
 
     if text is not None:
-        ser = serialized[config.SERIAL_TIMELINE_POST_TEXT_START:config.SERIAL_TIMELINE_POST_TEXT_END]
-        print(len(ser))
-        print(len(pad(text, config.FIELD_SIZE_TEXT)))
+        ser = extract_field(serialized, 'timeline_post', 'text')
         if pad(text, config.FIELD_SIZE_TEXT) != ser:
             return False
 
