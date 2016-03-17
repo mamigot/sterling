@@ -7,12 +7,22 @@
 using namespace std;
 
 
-map<string, int> configParams;
 string STORAGE_FILES_PATH;
+
+map<string, int> configParams;
+
+map<StoredFileType, string> storedFileTypes = {
+  {StoredFileType::CredentialFile, "CREDENTIAL"},
+  {StoredFileType::RelationFile, "RELATION"},
+  {StoredFileType::ProfilePostFile, "PROFILE_POST"},
+  {StoredFileType::TimelinePostFile, "TIMELINE_POST"}
+};
+
 
 void setConfigParams(void);
 void setStorageFilesPath(void);
 void initiateStorage(void);
+string getFileName(StoredFileType storedFileType, unsigned int fileNum);
 
 
 void configServer(void){
@@ -85,3 +95,26 @@ void initiateStorage(void){
 		}
   }
 }
+
+string getStoredFilePath(StoredFileType storedFileType, const string& username){
+  // "Hash" the username to a number within the relevant file's limits
+  unsigned int maxFileNum = configParams["FILE_COUNT_" + storedFileTypes[storedFileType]];
+
+  unsigned int numericUsername = 0;
+  for(unsigned int i = 0; i < username.size(); i++) {
+    numericUsername += username[i];
+  }
+
+  string fileName = getFileName(storedFileType, (numericUsername % maxFileNum));
+  return STORAGE_FILES_PATH + '/' + fileName;
+}
+
+string getFileName(StoredFileType storedFileType, unsigned int fileNum){
+  // Matches the format set by initiateStorage()
+  return storedFileTypes[storedFileType] + "_" + to_string(fileNum) + ".txt";
+}
+
+
+//int main(){
+//  configServer();
+//}
