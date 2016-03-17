@@ -24,9 +24,9 @@ vector<string> getProfilePosts(const string& username, unsigned int limit);
 
 bool isFollowing(const string& username, const string& friendUsername);
 
-bool follow(const string& username, const string& friendUsername);
+void follow(const string& username, const string& friendUsername);
 
-bool unfollow(const string& username, const string& friendUsername);
+void unfollow(const string& username, const string& friendUsername);
 
 vector<string> getFollowers(const string& username, unsigned int limit);
 
