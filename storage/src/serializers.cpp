@@ -78,7 +78,6 @@ bool matchesSerialized(const string& serialized, string& dataType, map<string, s
     }
 
     if(ser.compare(potentialMatch)){
-      //cerr << "Failed comparison... (" << x.first << ", " << x.second << ")\n";
       return false;
     }
   }
@@ -121,9 +120,4 @@ string extractField(const string& serialized, string& dataType, string& fieldTyp
   }
 
   return match;
-}
-
-
-int main(){
-  configServer();
 }
