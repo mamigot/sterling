@@ -23,4 +23,7 @@ string pad(const string& value, unsigned int fieldSize);
 // Remove all starting instances of fillerChar from value
 string unpad(const string& value);
 
+string extractField(const string& serialized, string& dataType, string& fieldType);
+
+
 #endif
