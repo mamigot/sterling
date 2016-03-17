@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <sys/stat.h>
 #include "filehandler.h"
 #include "serializers.h"
@@ -28,17 +29,17 @@ unsigned int getFileSize(const string& path){
   return in.tellg();
 }
 
-int itemMatch(const string& storedFilePath, string& dataType, map<string, string> matchArgs){
+int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs){
   if(!configParams.count("FILE_COUNT_" + dataType)){
     throw std::runtime_error("Given dataType is unknown");
   }
 
-  unsigned int fileSize = getFileSize(storedFilePath);
+  unsigned int fileSize = getFileSize(filePath);
   unsigned int itemSize = configParams["SERIAL_SIZE_" + dataType];
   int readPtr = itemSize;
 
   FILE* matchedFile;
-  matchedFile = fopen(storedFilePath.c_str(), "r+");
+  matchedFile = fopen(filePath.c_str(), "r+");
 
   char item[itemSize];
 
@@ -59,8 +60,94 @@ int itemMatch(const string& storedFilePath, string& dataType, map<string, string
   return -1;
 }
 
+string itemMatchSweep(const string& filePath, string& dataType, map<string, string> matchArgs, int limit){
+  if(!configParams.count("FILE_COUNT_" + dataType)){
+    throw std::runtime_error("Given dataType is unknown");
+  }
+
+  unsigned int fileSize = getFileSize(filePath);
+  unsigned int itemSize = configParams["SERIAL_SIZE_" + dataType];
+  int readPtr = itemSize;
+
+  FILE* matchedFile;
+  matchedFile = fopen(filePath.c_str(), "r+");
+
+  stringstream allMatches;
+  unsigned int matchCount = 0;
+  char item[itemSize];
+
+  while(readPtr <= fileSize){
+    fseek(matchedFile, -readPtr, SEEK_END);
+    fread(item, itemSize, 1, matchedFile);
+    item[itemSize] = '\0'; // Cap the garbage (without this, garbage is appended)
+
+    if(matchesSerialized(string(item), dataType, matchArgs)){
+      allMatches << item;
+      matchCount++;
+
+      if(limit != -1 && matchCount >= limit){
+        break;
+      }
+    }
+
+    readPtr += itemSize;
+  }
+
+  fclose(matchedFile);
+  return allMatches.str();
+}
+
+int setActiveFlag(bool active, const string& filePath, string& dataType, map<string, string> matchArgs){
+  if(!configParams.count("FILE_COUNT_" + dataType)){
+    throw std::runtime_error("Given dataType is unknown");
+  }
+
+  unsigned int fileSize = getFileSize(filePath);
+  unsigned int itemSize = configParams["SERIAL_SIZE_" + dataType];
+  int readPtr = itemSize;
+
+  FILE* matchedFile;
+  matchedFile = fopen(filePath.c_str(), "r+");
+
+  char activeByte = active ? '1' : '0';
+  unsigned int numModified = 0;
+  char item[itemSize];
+
+  while(readPtr <= fileSize){
+    fseek(matchedFile, -readPtr, SEEK_END);
+    fread(item, itemSize, 1, matchedFile);
+    item[itemSize] = '\0'; // Cap the garbage (without this, garbage is appended)
+
+    if(matchesSerialized(string(item), dataType, matchArgs)){
+      fseek(matchedFile, -readPtr, SEEK_END);
+      fwrite(&activeByte, 1, 1, matchedFile);
+      fseek(matchedFile, -readPtr, SEEK_END);
+      numModified++;
+    }
+
+    readPtr += itemSize;
+  }
+
+  fclose(matchedFile);
+  return numModified;
+}
+
 
 int main(){
   configServer();
 
+  /*
+  string username = "petrov";
+  string filePath = getStoredFilePath(StoredFileType::CredentialFile, username);
+
+  cout << filePath << "\n";
+
+  map<string, string> matchArgs = {
+    {"USERNAME", "4444user"}
+  };
+  string dataType = "CREDENTIAL";
+  int numModified = setActiveFlag(false, filePath, dataType, matchArgs);
+
+  cout << numModified << "\n";
+  */
 }
