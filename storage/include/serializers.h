@@ -2,6 +2,7 @@
 #define SERIALIZERS_H_
 
 #include <string>
+#include <map>
 #include "config.h"
 using namespace std;
 
@@ -14,13 +15,7 @@ string serializeProfilePost(ProfilePost& profilePost);
 
 string serializeTimelinePost(TimelinePost& timelinePost);
 
-bool matchesCredential(const string& serialized, Credential& credential);
-
-bool matchesRelation(const string& serialized, Relation& relation);
-
-bool matchesProfilePost(const string& serialized, ProfilePost& profilePost);
-
-bool matchesTimelinePost(const string& serialized, TimelinePost& timelinePost);
+bool matchesSerialized(const string& serialized, string& dataType, map<string, string> matchArgs);
 
 // Pad value with as many instances of fillerChar as fieldSize requires
 string pad(const string& value, unsigned int fieldSize);

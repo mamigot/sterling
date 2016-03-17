@@ -15,91 +15,12 @@ string serializeCredential(Credential& credential){
   return active + username + password;
 }
 
-bool matchesCredential(const string& serialized, Credential& credential){
-  // Determine whether the provided parameters match the serialized credential
-  string ser, fieldType, dataType = "CREDENTIAL";
-
-  if(credential.active != Active::All){
-    fieldType = "ACTIVE";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if((credential.active == Active::Yes && ser.compare("1")) || \
-       (credential.active == Active::No && ser.compare("0"))){
-      return false;
-    }
-  }
-
-  if(!credential.username.empty()){
-    fieldType = "USERNAME";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(credential.username, configParams["FIELD_SIZE_USERNAME"]))){
-      return false;
-    }
-  }
-
-  if(!credential.password.empty()){
-    fieldType = "PASSWORD";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(credential.password, configParams["FIELD_SIZE_PASSWORD"]))){
-      return false;
-    }
-  }
-
-  return true;
-}
-
 string serializeRelation(Relation& relation){
   string active = relation.active == Active::Yes ? "1" : "0";
   string firstUsername = pad(relation.firstUsername, configParams["FIELD_SIZE_USERNAME"]);
   string secondUsername = pad(relation.secondUsername, configParams["FIELD_SIZE_USERNAME"]);
 
   return active + firstUsername + relation.direction + secondUsername;
-}
-
-bool matchesRelation(const string& serialized, Relation& relation){
-  // Determine whether the provided parameters match the serialized relation
-  string ser, fieldType, dataType = "RELATION";
-
-  if(relation.active != Active::All){
-    fieldType = "ACTIVE";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if((relation.active == Active::Yes && ser.compare("1")) || \
-       (relation.active == Active::No && ser.compare("0"))){
-      return false;
-    }
-  }
-
-  if(!relation.firstUsername.empty()){
-    fieldType = "FIRST_USERNAME";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(relation.firstUsername, configParams["FIELD_SIZE_USERNAME"]))){
-      return false;
-    }
-  }
-
-  if(relation.direction != '\0'){
-    fieldType = "DIRECTION";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.at(0) != relation.direction){
-      return false;
-    }
-  }
-
-  if(!relation.secondUsername.empty()){
-    fieldType = "SECOND_USERNAME";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(relation.secondUsername, configParams["FIELD_SIZE_USERNAME"]))){
-      return false;
-    }
-  }
-
-  return true;
 }
 
 string serializeProfilePost(ProfilePost& profilePost){
@@ -114,49 +35,6 @@ string serializeProfilePost(ProfilePost& profilePost){
   string text = pad(profilePost.text, configParams["FIELD_SIZE_TEXT"]);
 
   return active + username + profilePost.timestamp + text;
-}
-
-bool matchesProfilePost(const string& serialized, ProfilePost& profilePost){
-  string ser, fieldType, dataType = "PROFILE_POST";
-
-  if(profilePost.active != Active::All){
-    fieldType = "ACTIVE";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if((profilePost.active == Active::Yes && ser.compare("1")) || \
-       (profilePost.active == Active::No && ser.compare("0"))){
-      return false;
-    }
-  }
-
-  if(!profilePost.username.empty()){
-    fieldType = "USERNAME";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(profilePost.username, configParams["FIELD_SIZE_USERNAME"]))){
-      return false;
-    }
-  }
-
-  if(!profilePost.timestamp.empty()){
-    fieldType = "TIMESTAMP";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(profilePost.timestamp, configParams["FIELD_SIZE_TIMESTAMP"]))){
-      return false;
-    }
-  }
-
-  if(!profilePost.text.empty()){
-    fieldType = "TEXT";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(profilePost.text, configParams["FIELD_SIZE_TEXT"]))){
-      return false;
-    }
-  }
-
-  return true;
 }
 
 string serializeTimelinePost(TimelinePost& timelinePost){
@@ -174,51 +52,33 @@ string serializeTimelinePost(TimelinePost& timelinePost){
   return active + username + author + timelinePost.timestamp + text;
 }
 
-bool matchesTimelinePost(const string& serialized, TimelinePost& timelinePost){
-  string ser, fieldType, dataType = "TIMELINE_POST";
-
-  if(timelinePost.active != Active::All){
-    fieldType = "ACTIVE";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if((timelinePost.active == Active::Yes && ser.compare("1")) || \
-       (timelinePost.active == Active::No && ser.compare("0"))){
-      return false;
-    }
+bool matchesSerialized(const string& serialized, string& dataType, map<string, string> matchArgs){
+  // Determine whether the provided parameters match the serialized item
+  if(!configParams.count("FILE_COUNT_" + dataType)){
+    throw std::runtime_error("Given dataType is unknown");
   }
 
-  if(!timelinePost.username.empty()){
-    fieldType = "USERNAME";
-
+  string ser, fieldType, potentialMatch;
+  for(auto const& x : matchArgs){
+    fieldType = x.first;
+    potentialMatch = x.second;
     ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(timelinePost.username, configParams["FIELD_SIZE_USERNAME"]))){
-      return false;
+
+    if(!fieldType.compare("USERNAME") || \
+       !fieldType.compare("AUTHOR") || \
+       !fieldType.compare("FIRST_USERNAME") || \
+       !fieldType.compare("SECOND_USERNAME")){
+      potentialMatch = pad(potentialMatch, configParams["FIELD_SIZE_USERNAME"]);
+
+    }else if(!fieldType.compare("PASSWORD")){
+      potentialMatch = pad(potentialMatch, configParams["FIELD_SIZE_PASSWORD"]);
+
+    }else if(!fieldType.compare("TEXT")){
+      potentialMatch = pad(potentialMatch, configParams["FIELD_SIZE_TEXT"]);
     }
-  }
 
-  if(!timelinePost.author.empty()){
-    fieldType = "AUTHOR";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(timelinePost.author, configParams["FIELD_SIZE_USERNAME"]))){
-      return false;
-    }
-  }
-
-  if(!timelinePost.timestamp.empty()){
-    fieldType = "TIMESTAMP";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(timelinePost.timestamp, configParams["FIELD_SIZE_TIMESTAMP"]))){
-      return false;
-    }
-  }
-
-  if(!timelinePost.text.empty()){
-    fieldType = "TEXT";
-
-    ser = extractField(serialized, dataType, fieldType);
-    if(ser.compare(pad(timelinePost.text, configParams["FIELD_SIZE_TEXT"]))){
+    if(ser.compare(potentialMatch)){
+      //cerr << "Failed comparison... (" << x.first << ", " << x.second << ")\n";
       return false;
     }
   }
@@ -263,8 +123,7 @@ string extractField(const string& serialized, string& dataType, string& fieldTyp
   return match;
 }
 
-/*
+
 int main(){
   configServer();
 }
-*/
