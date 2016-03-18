@@ -42,8 +42,8 @@ void handleRequest(int connfd, char* buff, unsigned int buffSize){
     /*** Done telling the client ***/
   }
 
-  unsigned int numItemsPerPacket = buffSize / singleItemSize;
-  unsigned int numPacketsToExpect = numItems / numItemsPerPacket;
+  unsigned int maxItemsPerPacket = buffSize / singleItemSize;
+  unsigned int numPacketsToExpect = numItems / maxItemsPerPacket + 1;
 
   /*** Tell the client ***/
   string msg = "201: Expect packets: " + std::to_string(numPacketsToExpect);
@@ -62,7 +62,7 @@ void handleRequest(int connfd, char* buff, unsigned int buffSize){
   for(size_t i = 0; i < numItems; i++){
     packet << output[i];
 
-    if(!(i % numItemsPerPacket) || i == numItems - 1){
+    if(!(i % maxItemsPerPacket) || i == numItems - 1){
       /*** Send the packet to the client ***/
       string packetContent = packet.str();
       cerr << "Sending: " << packetContent << endl;
