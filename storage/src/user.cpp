@@ -35,7 +35,7 @@ bool verifyCredential(const string& username, const string& password){
   return matchLocation != -1;
 }
 
-void saveCredential(const string& username, const string& password){
+bool saveCredential(const string& username, const string& password){
   string credentialPath = getStoredFilePath(StoredFileType::CredentialFile, username);
   string dataType = "CREDENTIAL";
 
@@ -51,10 +51,13 @@ void saveCredential(const string& username, const string& password){
     string serialized = serializeCredential(credential);
 
     appendToFile(credentialPath, serialized);
+    return true;
   }
+
+  return false; // Credential already existed (none created)
 }
 
-void deleteCredential(const string& username, const string& password){
+bool deleteCredential(const string& username, const string& password){
   string timestamp, dataType = "PROFILE_POST", fieldType = "TIMESTAMP";
   for(string& serializedPost : getProfilePosts(username, -1)){
     timestamp = extractField(serializedPost, dataType, fieldType);
@@ -71,12 +74,10 @@ void deleteCredential(const string& username, const string& password){
   };
 
   int numModified = setActiveFlag(false, credentialPath, dataType, matchArgs);
-  if(!numModified){
-    throw std::runtime_error("Cannot verify credential");
-  }
+  return numModified > 0;
 }
 
-void savePost(const string& username, const string& text){
+bool savePost(const string& username, const string& text){
   // Record the user's profile file
   string postTimestamp = getTimeNow();
 
@@ -100,9 +101,11 @@ void savePost(const string& username, const string& text){
     serialized = serializeTimelinePost(timelinePost);
     appendToFile(timelinePostPath, serialized);
   }
+
+  return true;
 }
 
-void deletePost(const string& username, const string& timestamp){
+bool deletePost(const string& username, const string& timestamp){
   string profilePostPath = getStoredFilePath(StoredFileType::ProfilePostFile, username);
   string dataType = "PROFILE_POST";
 
@@ -112,7 +115,8 @@ void deletePost(const string& username, const string& timestamp){
     {"TIMESTAMP", timestamp}
   };
 
-  setActiveFlag(false, profilePostPath, dataType, matchArgs);
+  int modifiedCount = setActiveFlag(false, profilePostPath, dataType, matchArgs);
+  if(!modifiedCount) return false;
 
   string paddedFollowerUsername, followerUsername, timelinePostPath, fieldType;
   for(string& serializedRelation : getFollowers(username, -1)){
@@ -129,8 +133,11 @@ void deletePost(const string& username, const string& timestamp){
     matchArgs["AUTHOR"] = username;
     matchArgs["TIMESTAMP"] = timestamp;
 
-    setActiveFlag(false, timelinePostPath, dataType, matchArgs);
+    modifiedCount = setActiveFlag(false, timelinePostPath, dataType, matchArgs);
+    if(!modifiedCount) return false;
   }
+
+  return true;
 }
 
 vector<string> getTimelinePosts(const string& username, int limit){
@@ -142,7 +149,7 @@ vector<string> getTimelinePosts(const string& username, int limit){
     {"USERNAME", username}
   };
 
-  vector<string> timelinePosts = itemMatchSweep(timelinePostPath, dataType, matchArgs, -1);
+  vector<string> timelinePosts = itemMatchSweep(timelinePostPath, dataType, matchArgs, limit);
   return timelinePosts;
 }
 
@@ -155,7 +162,7 @@ vector<string> getProfilePosts(const string& username, int limit){
     {"USERNAME", username}
   };
 
-  vector<string> profilePosts = itemMatchSweep(profilePostPath, dataType, matchArgs, -1);
+  vector<string> profilePosts = itemMatchSweep(profilePostPath, dataType, matchArgs, limit);
   return profilePosts;
 }
 
@@ -174,10 +181,8 @@ bool isFollowing(const string& username, const string& friendUsername){
   return matchLocation != -1;
 }
 
-void follow(const string& username, const string& friendUsername){
-  if(!exists(friendUsername)){
-    throw std::runtime_error("Given friend is not real");
-  }
+bool follow(const string& username, const string& friendUsername){
+  if(!exists(friendUsername)) return false;
 
   // Record the user's relation (only make a change if not following already)
   string relationPath = getStoredFilePath(StoredFileType::RelationFile, username);
@@ -226,9 +231,11 @@ void follow(const string& username, const string& friendUsername){
       appendToFile(relationPath, serialized);
     }
   }
+
+  return true;
 }
 
-void unfollow(const string& username, const string& friendUsername){
+bool unfollow(const string& username, const string& friendUsername){
   string dataType = "RELATION";
 
   string relationPath = getStoredFilePath(StoredFileType::RelationFile, username);
@@ -240,7 +247,8 @@ void unfollow(const string& username, const string& friendUsername){
     {"SECOND_USERNAME", friendUsername}
   };
 
-  setActiveFlag(false, relationPath, dataType, matchArgs);
+  int numModified = setActiveFlag(false, relationPath, dataType, matchArgs);
+  if(!numModified) return false;
 
   relationPath = getStoredFilePath(StoredFileType::RelationFile, friendUsername);
 
@@ -250,7 +258,8 @@ void unfollow(const string& username, const string& friendUsername){
   matchArgs["DIRECTION"] = "<";
   matchArgs["SECOND_USERNAME"] = username;
 
-  setActiveFlag(false, relationPath, dataType, matchArgs);
+  numModified = setActiveFlag(false, relationPath, dataType, matchArgs);
+  if(!numModified) return false;
 
   dataType = "TIMELINE_POST";
   string timelinePostPath = getStoredFilePath(StoredFileType::TimelinePostFile, username);
@@ -261,6 +270,7 @@ void unfollow(const string& username, const string& friendUsername){
   matchArgs["AUTHOR"] = friendUsername;
 
   setActiveFlag(false, timelinePostPath, dataType, matchArgs);
+  return true;
 }
 
 vector<string> getFollowers(const string& username, int limit){
@@ -273,7 +283,7 @@ vector<string> getFollowers(const string& username, int limit){
     {"DIRECTION", "<"},
   };
 
-  vector<string> serializedRelations = itemMatchSweep(relationPath, dataType, matchArgs, -1);
+  vector<string> serializedRelations = itemMatchSweep(relationPath, dataType, matchArgs, limit);
   return serializedRelations;
 }
 
@@ -287,6 +297,6 @@ vector<string> getFriends(const string& username, int limit){
     {"DIRECTION", ">"},
   };
 
-  vector<string> serializedRelations = itemMatchSweep(relationPath, dataType, matchArgs, -1);
+  vector<string> serializedRelations = itemMatchSweep(relationPath, dataType, matchArgs, limit);
   return serializedRelations;
 }

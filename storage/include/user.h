@@ -10,13 +10,17 @@ bool exists(const string& username);
 
 bool verifyCredential(const string& username, const string& password);
 
-void saveCredential(const string& username, const string& password);
+// true if success, false otherwise
+bool saveCredential(const string& username, const string& password);
 
-void deleteCredential(const string& username, const string& password);
+// true if success, false otherwise
+bool deleteCredential(const string& username, const string& password);
 
-void savePost(const string& username, const string& text);
+// true if success, false otherwise
+bool savePost(const string& username, const string& text);
 
-void deletePost(const string& username, const string& timestamp);
+// true if success, false otherwise
+bool deletePost(const string& username, const string& timestamp);
 
 vector<string> getTimelinePosts(const string& username, int limit);
 
@@ -24,9 +28,11 @@ vector<string> getProfilePosts(const string& username, int limit);
 
 bool isFollowing(const string& username, const string& friendUsername);
 
-void follow(const string& username, const string& friendUsername);
+// true if success, false otherwise
+bool follow(const string& username, const string& friendUsername);
 
-void unfollow(const string& username, const string& friendUsername);
+// true if success, false otherwise
+bool unfollow(const string& username, const string& friendUsername);
 
 vector<string> getFollowers(const string& username, int limit);
 
