@@ -62,7 +62,9 @@ void handleRequest(int connfd, char* buff){
 }
 */
 
-int mainaaaa(int argc, char **argv) {
+int main(int argc, char **argv) {
+  initiateProtocol();
+
   int listenfd, connfd;  // Unix file descriptors
   struct sockaddr_in servaddr;  // Note C use of struct
   char buff[BUFFSIZE];
