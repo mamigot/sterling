@@ -80,8 +80,6 @@ vector<string> itemMatchSweep(const string& filePath, string& dataType, map<stri
   matchedFile = fopen(filePath.c_str(), "r+");
 
   vector<string> allMatches;
-  //stringstream allMatches;
-  //unsigned int matchCount = 0;
   char item[itemSize];
 
   while(readPtr <= fileSize){
@@ -91,8 +89,6 @@ vector<string> itemMatchSweep(const string& filePath, string& dataType, map<stri
 
     if(matchesSerialized(string(item), dataType, matchArgs)){
       allMatches.push_back(item);
-      //allMatches << item;
-      //matchCount++;
 
       if(limit != -1 && allMatches.size() >= limit){
         break;
