@@ -1,7 +1,6 @@
 from functools import wraps
 from flask import Flask, session, render_template, request, redirect, url_for, flash
-from storage import access, User
-import routes
+from access import User, UsernameAlreadyExists, CannotVerifyCredential
 
 
 app = Flask(__name__)
@@ -29,7 +28,7 @@ def register():
             user.save_credential()
             session['username'] = user.username
             return redirect(url_for('timeline'))
-        except access.UsernameAlreadyExists:
+        except UsernameAlreadyExists:
             flash('Unsuccessful registration –username already exists')
 
     return render_template('register.html')
@@ -42,7 +41,7 @@ def deactivate():
         try:
             user.delete_credential()
             flash('Successful deactivation')
-        except access.CannotVerifyCredential:
+        except CannotVerifyCredential:
             flash('Failed deactivation –cannot verify the credential')
 
     return render_template('deactivate.html')
@@ -56,7 +55,7 @@ def login():
             user.verify_credential()
             session['username'] = user.username
             return redirect(url_for('timeline'))
-        except access.CannotVerifyCredential:
+        except CannotVerifyCredential:
             flash('Failed login –cannot verify the credential')
 
     return render_template('login.html')

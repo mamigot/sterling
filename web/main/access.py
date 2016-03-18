@@ -1,4 +1,4 @@
-from . import client, serializers
+import config, client, serializers
 
 
 class UsernameAlreadyExists(Exception):
@@ -69,7 +69,7 @@ class User:
 
         output = client.request(command)
 
-        if output == 'true':
+        if output == 'success':
             return True
         else:
             raise UsernameAlreadyExists()
@@ -93,7 +93,7 @@ class User:
 
         output = client.request(command)
 
-        if output != 'true':
+        if output != 'success':
             raise CannotVerifyCredential()
 
     def save_post(self, text): # SAVE/posts/self.username:text\0
@@ -110,7 +110,7 @@ class User:
 
         output = client.request(command)
 
-        if output != 'true':
+        if output != 'success':
             raise ErrorProcessingRequest()
 
     def delete_post(self, timestamp): # DELETE/posts/self.username:timestamp\0
@@ -129,7 +129,7 @@ class User:
 
         output = client.request(command)
 
-        if output != 'true':
+        if output != 'success':
             raise ErrorProcessingRequest()
 
     def get_timeline_posts(self, limit=20): # GET/posts/timeline/self.username:limit\0
@@ -148,7 +148,13 @@ class User:
 
         posts = []
         for serialized_post in serialized_posts:
-            posts.append(Post(**serializers.deserialize_timeline_post()))
+            deserialized = serializers.deserialize_timeline_post(serialized_post)
+            posts.append(Post(
+                active=deserialized.get('active'),
+                username=deserialized.get('author'),
+                timestamp=deserialized.get('timestamp'),
+                text=deserialized.get('text')
+            ))
 
         return posts
 
@@ -168,7 +174,8 @@ class User:
 
         posts = []
         for serialized_post in serialized_posts:
-            posts.append(Post(**serializers.deserialize_timeline_post()))
+            deserialized = serializers.deserialize_profile_post(serialized_post)
+            posts.append(Post(**deserialized))
 
         return posts
 
@@ -193,7 +200,7 @@ class User:
 
         output = client.request(command)
 
-        if output != 'true':
+        if output != 'success':
             raise ErrorProcessingRequest()
 
     def unfollow(self, friend): # DELETE/relations/self.username:friend.username\0
@@ -206,7 +213,7 @@ class User:
 
         output = client.request(command)
 
-        if output != 'true':
+        if output != 'success':
             raise ErrorProcessingRequest()
 
     def get_followers(self, limit=20): # GET/relations/followers/self.username:limit\0
@@ -225,8 +232,8 @@ class User:
 
         usernames = []
         for serialized_relation in serialized_relations:
-            relation = serializers.deserialize_relation(serialized_relation)
-            usernames.append(relation['second_username'])
+            deserialized = serializers.deserialize_relation(serialized_relation)
+            usernames.append(User(username=deserialized['second_username']))
 
         return usernames
 
@@ -246,8 +253,8 @@ class User:
 
         usernames = []
         for serialized_relation in serialized_relations:
-            relation = serializers.deserialize_relation(serialized_relation)
-            usernames.append(relation['second_username'])
+            deserialized = serializers.deserialize_relation(serialized_relation)
+            usernames.append(User(username=deserialized['second_username']))
 
         return usernames
 
@@ -258,7 +265,7 @@ class Post:
         self.timestamp = timestamp
         self.text = text
 
-def get_request_command(endpoint, **params):
+def get_request_command(endpoint, params):
     if endpoint == 'exists':
         return 'GET/credential/%s\0' % params.get('username')
 
@@ -323,4 +330,7 @@ def get_request_command(endpoint, **params):
         )
 
 def split_chunk(chunk, unit_size):
+    if not chunk:
+        return ''
+
     return [chunk[i:i+unit_size] for i in range(0, len(chunk), unit_size)]

@@ -1,4 +1,4 @@
-from . import config
+import config
 
 
 def serialize_credential(active, username, password):
