@@ -30,9 +30,9 @@ unsigned int getFileSize(const string& path){
 }
 
 void appendToFile(const string& path, const string& content){
-  std::ofstream outfile;
+  ofstream outfile;
 
-  outfile.open(path, std::ios_base::app);
+  outfile.open(path, ios_base::app);
   outfile << content;
 }
 
