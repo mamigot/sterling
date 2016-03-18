@@ -79,8 +79,9 @@ vector<string> itemMatchSweep(const string& filePath, string& dataType, map<stri
   FILE* matchedFile;
   matchedFile = fopen(filePath.c_str(), "r+");
 
-  vector<string> allMatches;
   char item[itemSize];
+  vector<string> allMatches;
+  if(!limit) return allMatches;
 
   while(readPtr <= fileSize){
     fseek(matchedFile, -readPtr, SEEK_END);
