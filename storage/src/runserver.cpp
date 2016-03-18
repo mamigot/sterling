@@ -18,49 +18,12 @@
 #include "protocol.h"
 using namespace std;
 
-#define SA struct sockaddr
-#define BUFFSIZE 8192  // buffer size for reads and writes
-//#define MAXREADSIZE 500 // cap the size of the reads (containing user's request)
 
+#define SA struct sockaddr
 #define LISTENQ 1024  // 2nd argument to listen()
+#define BUFFSIZE 8192  // buffer size for reads and writes
 #define PORT_NUM 13002
 
-/*
-vector<string> retrieveOutput(const string& rawCommand){
-  // Output is a vector of strings where each string is smaller than BUFFSIZE
-  cout << rawCommand << endl;
-
-  vector<string> swag;
-  return swag;
-}
-
-void handleRequest(int connfd, char* buff){
-  // Wait to read the user's command
-  // Write a response back
-  int n;
-  if((n = read(connfd, buff, MAXREADSIZE)) == -1) {
-    perror("recv");
-    exit(1);
-  }
-
-  vector<string> output = retrieveOutput(string(buff));
-
-  for(string& serializedRelation : output){
-    // Fit as many entries as possible within the first BUFFSIZE bytes
-
-  }
-
-  for(int i = 0; i < 5; i++){
-    string swag = "swagasaurus";
-    snprintf(buff, 20, "%s", swag.c_str());
-
-    int len = strlen(buff);
-    if (len != write(connfd, buff, strlen(buff))) {
-      perror("write to connection failed");
-    }
-  }
-}
-*/
 
 int main(int argc, char **argv) {
   initiateProtocol();
@@ -106,7 +69,7 @@ int main(int argc, char **argv) {
       perror("accept failed");
       exit(4);
     }
-    fprintf(stderr, "Connected\n");
+    fprintf(stderr, "Connected.\n");
 
     // We have a connection. Do whatever our task is.
     handleRequest(connfd, buff, BUFFSIZE);
