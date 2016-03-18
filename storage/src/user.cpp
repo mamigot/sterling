@@ -123,7 +123,7 @@ void deletePost(const string& username, const string& timestamp){
     timelinePostPath = getStoredFilePath(StoredFileType::TimelinePostFile, followerUsername);
     dataType = "TIMELINE_POST";
 
-    matchArgs.clear(); /***************DOUBLECHECK IF THIS REDEFINITION WORKS ***************************************/
+    matchArgs.clear();
     matchArgs["ACTIVE"] = "1";
     matchArgs["USERNAME"] = followerUsername;
     matchArgs["AUTHOR"] = username;
@@ -133,7 +133,7 @@ void deletePost(const string& username, const string& timestamp){
   }
 }
 
-vector<string> getTimelinePosts(const string& username, unsigned int limit){
+vector<string> getTimelinePosts(const string& username, int limit){
   string timelinePostPath = getStoredFilePath(StoredFileType::TimelinePostFile, username);
   string dataType = "TIMELINE_POST";
 
@@ -146,7 +146,7 @@ vector<string> getTimelinePosts(const string& username, unsigned int limit){
   return timelinePosts;
 }
 
-vector<string> getProfilePosts(const string& username, unsigned int limit){
+vector<string> getProfilePosts(const string& username, int limit){
   string profilePostPath = getStoredFilePath(StoredFileType::ProfilePostFile, username);
   string dataType = "PROFILE_POST";
 
@@ -179,12 +179,12 @@ void follow(const string& username, const string& friendUsername){
     throw std::runtime_error("Given friend is not real");
   }
 
-  // Record the user's relation
+  // Record the user's relation (only make a change if not following already)
   string relationPath = getStoredFilePath(StoredFileType::RelationFile, username);
   string dataType = "RELATION";
 
   map<string, string> matchArgs = {
-    {"ACTIVE", "0"},
+    {"ACTIVE", "1"},
     {"FIRST_USERNAME", username},
     {"DIRECTION", ">"},
     {"SECOND_USERNAME", friendUsername}
@@ -192,20 +192,23 @@ void follow(const string& username, const string& friendUsername){
 
   int numModified = setActiveFlag(true, relationPath, dataType, matchArgs);
 
-  Relation relation;
-  string serialized;
   if(!numModified){
-    relation = {Active::Yes, username, '>', friendUsername};
-    serialized = serializeRelation(relation);
+    matchArgs["ACTIVE"] = "0";
+    numModified = setActiveFlag(true, relationPath, dataType, matchArgs);
 
-    appendToFile(relationPath, serialized);
+    if(!numModified){
+      Relation relation = {Active::Yes, username, '>', friendUsername};
+      string serialized = serializeRelation(relation);
+
+      appendToFile(relationPath, serialized);
+    }
   }
 
-  // Record the friend's relation
-  relationPath = getStoredFilePath(StoredFileType::RelationFile, username);
+  // Record the friend's relation (only make a change if not following already)
+  relationPath = getStoredFilePath(StoredFileType::RelationFile, friendUsername);
 
-  matchArgs.clear(); /***************DOUBLECHECK IF THIS REDEFINITION WORKS ***************************************/
-  matchArgs["ACTIVE"] = "0";
+  matchArgs.clear();
+  matchArgs["ACTIVE"] = "1";
   matchArgs["FIRST_USERNAME"] = friendUsername;
   matchArgs["DIRECTION"] = "<";
   matchArgs["SECOND_USERNAME"] = username;
@@ -213,10 +216,15 @@ void follow(const string& username, const string& friendUsername){
   numModified = setActiveFlag(true, relationPath, dataType, matchArgs);
 
   if(!numModified){
-    relation = {Active::Yes, friendUsername, '<', username};
-    serialized = serializeRelation(relation);
+    matchArgs["ACTIVE"] = "0";
+    numModified = setActiveFlag(true, relationPath, dataType, matchArgs);
 
-    appendToFile(relationPath, serialized);
+    if(!numModified){
+      Relation relation = {Active::Yes, friendUsername, '<', username};
+      string serialized = serializeRelation(relation);
+
+      appendToFile(relationPath, serialized);
+    }
   }
 }
 
@@ -236,7 +244,7 @@ void unfollow(const string& username, const string& friendUsername){
 
   relationPath = getStoredFilePath(StoredFileType::RelationFile, friendUsername);
 
-  matchArgs.clear(); /***************DOUBLECHECK IF THIS REDEFINITION WORKS ***************************************/
+  matchArgs.clear();
   matchArgs["ACTIVE"] = "1";
   matchArgs["FIRST_USERNAME"] = friendUsername;
   matchArgs["DIRECTION"] = "<";
@@ -247,7 +255,7 @@ void unfollow(const string& username, const string& friendUsername){
   dataType = "TIMELINE_POST";
   string timelinePostPath = getStoredFilePath(StoredFileType::TimelinePostFile, username);
 
-  matchArgs.clear(); /***************DOUBLECHECK IF THIS REDEFINITION WORKS ***************************************/
+  matchArgs.clear();
   matchArgs["ACTIVE"] = "1";
   matchArgs["USERNAME"] = username;
   matchArgs["AUTHOR"] = friendUsername;
@@ -255,7 +263,7 @@ void unfollow(const string& username, const string& friendUsername){
   setActiveFlag(false, timelinePostPath, dataType, matchArgs);
 }
 
-vector<string> getFollowers(const string& username, unsigned int limit){
+vector<string> getFollowers(const string& username, int limit){
   string relationPath = getStoredFilePath(StoredFileType::RelationFile, username);
   string dataType = "RELATION";
 
@@ -269,7 +277,7 @@ vector<string> getFollowers(const string& username, unsigned int limit){
   return serializedRelations;
 }
 
-vector<string> getFriends(const string& username, unsigned int limit){
+vector<string> getFriends(const string& username, int limit){
   string relationPath = getStoredFilePath(StoredFileType::RelationFile, username);
   string dataType = "RELATION";
 
@@ -281,10 +289,4 @@ vector<string> getFriends(const string& username, unsigned int limit){
 
   vector<string> serializedRelations = itemMatchSweep(relationPath, dataType, matchArgs, -1);
   return serializedRelations;
-}
-
-
-int main(){
-  configServer();
-
 }

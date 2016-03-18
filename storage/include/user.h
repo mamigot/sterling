@@ -18,9 +18,9 @@ void savePost(const string& username, const string& text);
 
 void deletePost(const string& username, const string& timestamp);
 
-vector<string> getTimelinePosts(const string& username, unsigned int limit);
+vector<string> getTimelinePosts(const string& username, int limit);
 
-vector<string> getProfilePosts(const string& username, unsigned int limit);
+vector<string> getProfilePosts(const string& username, int limit);
 
 bool isFollowing(const string& username, const string& friendUsername);
 
@@ -28,9 +28,9 @@ void follow(const string& username, const string& friendUsername);
 
 void unfollow(const string& username, const string& friendUsername);
 
-vector<string> getFollowers(const string& username, unsigned int limit);
+vector<string> getFollowers(const string& username, int limit);
 
-vector<string> getFriends(const string& username, unsigned int limit);
+vector<string> getFriends(const string& username, int limit);
 
 
 #endif
