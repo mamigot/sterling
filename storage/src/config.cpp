@@ -99,6 +99,9 @@ void initiateStorage(void){
 string getStoredFilePath(StoredFileType storedFileType, const string& username){
   // "Hash" the username to a number within the relevant file's limits
   unsigned int maxFileNum = configParams["FILE_COUNT_" + storedFileTypes[storedFileType]];
+  if(!maxFileNum){
+    throw std::runtime_error("maxFileNum is zero. Likely that configServer() has not been called.");
+  }
 
   unsigned int numericUsername = 0;
   for(unsigned int i = 0; i < username.size(); i++) {
