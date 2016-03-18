@@ -7,8 +7,55 @@
 using namespace std;
 
 
-// GET/credentials/username\0
-regex existsRe("GET/credentials/([\\w]+)\0");
+/********** GET/... **********/
+regex reGet("GET/.*");
+
+// GET/credential/username\0
+regex reExists("GET/credential/([\\w]+)\0");
+
+// GET/credential/username:password\0
+regex reVerifyCredential("GET/credential/([\\w]+):([\\w]+)\0");
+
+// GET/posts/profile/username:limit\0
+regex reGetProfilePosts("GET/posts/profile/([\\w]+):(-?[\\d]+)\0");
+
+// GET/posts/timeline/username:limit\0
+regex reGetTimelinePosts("GET/posts/timeline/([\\w]+):(-?[\\d]+)\0");
+
+// GET/relations/username:friendUsername\0
+regex reIsFollowing("GET/relations/([\\w]+):([\\w]+)\0");
+
+// GET/relations/followers/username:limit\0
+regex reGetFollowers("GET/relations/followers/([\\w]+):(-?[\\d]+)\0");
+
+// GET/relations/friends/username:limit\0
+regex reGetFriends("GET/relations/friends/([\\w]+):(-?[\\d]+)\0");
+
+
+/********** SAVE/... **********/
+regex reSave("SAVE/.*");
+
+// SAVE/credential/username:password\0
+regex reSaveCredential("SAVE/credential/([\\w]+):([\\w]+)\0");
+
+// SAVE/posts/username:text\0
+regex reSavePost("SAVE/posts/([\\w]+):(.*)\0");
+
+// SAVE/relations/username:friendUsername\0
+regex reFollow("SAVE/relations/([\\w]+):([\\w]+)\0");
+
+
+/********** DELETE/... **********/
+regex reDelete("DELETE/.*");
+
+// DELETE/credential/username:password\0
+regex reDeleteCredential("DELETE/credential/([\\w]+):([\\w]+)\0");
+
+// DELETE/posts/username:timestamp\0
+regex reDeletePost("DELETE/posts/([\\w]+):([\\d]{10})\0");
+
+// DELETE/relations/username:friendUsername\0
+regex reUnfollow("DELETE/relations/([\\w]+):([\\w]+)\0");
 
 
 void initiateProtocol(void){
@@ -111,27 +158,93 @@ vector<string> parseClientInput(const string& input){
   vector<string> output;
   smatch matches;
 
-  if(regex_match(input, matches, existsRe)) {
-    string username = matches[1]; // first group
+  if(regex_match(input, matches, reGet)){
+    // Match against all GET patterns
+    if(regex_match(input, matches, reExists)){
+      string username = matches[1];
 
-    if(exists(username))
-      output.push_back("exists");
-    else
-      output.push_back("does not exist");
+      if(exists(username)) output.push_back("true");
+      else output.push_back("false");
+
+    }else if(regex_match(input, matches, reVerifyCredential)){
+      string username = matches[1], password = matches[2];
+
+      if(verifyCredential(username, password)) output.push_back("true");
+      else output.push_back("false");
+
+    }else if(regex_match(input, matches, reGetProfilePosts)){
+      string username = matches[1];
+      int limit = stoi(matches[2], NULL, 10);
+
+      output = getProfilePosts(username, limit);
+
+    }else if(regex_match(input, matches, reGetTimelinePosts)){
+      string username = matches[1];
+      int limit = stoi(matches[2], NULL, 10);
+
+      output = getTimelinePosts(username, limit);
+
+    }else if(regex_match(input, matches, reIsFollowing)){
+      string username = matches[1], friendUsername = matches[2];
+
+      if(isFollowing(username, friendUsername)) output.push_back("true");
+      else output.push_back("false");
+
+    }else if(regex_match(input, matches, reGetFollowers)){
+      string username = matches[1];
+      int limit = stoi(matches[2], NULL, 10);
+
+      output = getFollowers(username, limit);
+
+    }else if(regex_match(input, matches, reGetFriends)){
+      string username = matches[1];
+      int limit = stoi(matches[2], NULL, 10);
+
+      output = getFriends(username, limit);
+    }
+
+  }else if(regex_match(input, matches, reSave)){
+    // Match against all SAVE patterns
+    if(regex_match(input, matches, reSaveCredential)){
+      string username = matches[1], password = matches[2];
+
+      if(saveCredential(username, password)) output.push_back("success");
+      else output.push_back("error");
+
+    }else if(regex_match(input, matches, reSavePost)){
+      string username = matches[1], text = matches[2];
+
+      if(savePost(username, text)) output.push_back("success");
+      else output.push_back("error");
+
+    }else if(regex_match(input, matches, reFollow)){
+      string username = matches[1], friendUsername = matches[2];
+
+      if(follow(username, friendUsername)) output.push_back("success");
+      else output.push_back("error");
+    }
+
+  }else if(regex_match(input, matches, reDelete)){
+    // Match against all DELETE patterns
+    if(regex_match(input, matches, reDeleteCredential)){
+      string username = matches[1], password = matches[2];
+
+      if(deleteCredential(username, password)) output.push_back("success");
+      else output.push_back("error");
+
+    }else if(regex_match(input, matches, reDeletePost)){
+      string username = matches[1], timestamp = matches[2];
+
+      if(deletePost(username, timestamp)) output.push_back("success");
+      else output.push_back("error");
+
+    }else if(regex_match(input, matches, reUnfollow)){
+      string username = matches[1], friendUsername = matches[2];
+
+      if(unfollow(username, friendUsername)) output.push_back("success");
+      else output.push_back("error");
+    }
   }
 
   return output;
 }
-
-/*
-int main(){
-  configServer();
-
-  string input = "GET/credentials/bob\0";
-  vector<string> output = parseClientInput(input);
-
-  for(string item:output){
-    cout << item << endl;
-  }
-}
-*/
