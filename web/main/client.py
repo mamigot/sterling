@@ -38,7 +38,7 @@ def request(command, host=HOSTNAME, port=PORT_NUM):
 
         # Receive as many packets as indicated
         output = ""
-        for i in range(num_expected):
+        for i in range(num_expected + 1):
             output += s.recv(BUFFSIZE).decode('utf-8')
             # Signal that we have received the packet
             s.send(ClientResponseSignal.Ack)
