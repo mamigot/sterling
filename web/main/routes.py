@@ -78,18 +78,22 @@ def timeline():
         posts=user.get_timeline_posts()
     )
 
-@app.route('/profile')
-@app.route('/profile/<secondary_username>', methods=['GET'])
+@app.route('/profile/')
+@app.route('/profile/<requested_username>', methods=['GET'])
 @login_required
-def profile(secondary_username=None):
+def profile(requested_username=None):
     """If `secondary_username` corresponds to an existing user, show his page.
     If `secondary_username` does not exist, show a 404.
     If `secondary_username` is the user's own profile, redirect to his page.
     """
-    user = User(username=session.get('username'))
-    secondary_user = User(username=secondary_username)
+    user = User(session.get('username'))
+    if not requested_username:
+        requested_username = request.args.get('requested_username')
 
-    if secondary_username and secondary_username != user.username:
+    if requested_username != session.get('username'):
+        # Dealing with a secondary user (i.e. not the one who's logged in)
+        secondary_user = User(requested_username)
+
         if not secondary_user.exists():
             return render_template('404.html',
                 message='User "%s" does not exist' % secondary_user.username
@@ -158,4 +162,4 @@ def post():
     elif request.form.get('deletepost'):
         user.delete_post(request.form.get('timestamp'))
 
-    return redirect(url_for('profile'))
+    return redirect(url_for('profile', requested_username=user.username))

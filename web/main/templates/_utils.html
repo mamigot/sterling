@@ -3,7 +3,7 @@
 {% macro show_posts(posts, deleteable) %}
   {% for post in posts %}
     <em>
-      <a href="{{ url_for('profile', secondary_username=post.username) }}">{{ post.username }}</a>,
+      <a href="{{ url_for('profile', requested_username=post.username) }}">{{ post.username }}</a>,
       <small>{{ post.timestamp|timestamp_to_date }}</small>
     </em>
 
@@ -19,7 +19,7 @@
 
   {% for username in usernames %}
     <em>
-      <a href="{{ url_for('profile', secondary_username=username) }}">{{ username }}</a>
+      <a href="{{ url_for('profile', requested_username=username) }}">{{ username }}</a>
     </em>
     <hr>
   {% endfor %}

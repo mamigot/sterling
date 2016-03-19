@@ -4,9 +4,10 @@
   <span style="display:inline">Well hello, <b><em>{{ username }}<em></b> &nbsp;</span>
 
   <a href="{{ url_for('timeline') }}"><input type="button" value="Timeline"></a>
-  <a href="{{ url_for('profile') }}"><input type="button" value="Profile"></a>
+  <a href="{{ url_for('profile', requested_username=username) }}"><input type="button" value="Profile"></a>
   <a href="{{ url_for('friends') }}"><input type="button" value="Friends"></a>
   <a href="{{ url_for('followers') }}"><input type="button" value="Followers"></a>
+  {{ forms.search_profile() }}
 
   {{ forms.sign_out() }}
   <br><br>
