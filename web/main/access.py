@@ -12,6 +12,7 @@ class ErrorProcessingRequest(Exception):
 
 
 class User:
+    """Used to make requests to the server and parse the outputs accordingly"""
     def __init__(self, username, password=None):
         self.username = username
         self.password = password
@@ -266,6 +267,7 @@ class Post:
         self.text = text
 
 def get_request_command(endpoint, params):
+    """Build a request command given an endpoint and its relevant parameters"""
     if endpoint == 'exists':
         return 'GET/credential/%s\0' % params.get('username')
 
@@ -330,6 +332,7 @@ def get_request_command(endpoint, params):
         )
 
 def split_chunk(chunk, unit_size):
+    """Split string into items whose size is given by unit_size"""
     if not chunk:
         return ''
 

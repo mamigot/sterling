@@ -1,8 +1,10 @@
+"""Defines workflow through which requests are made to the server"""
 import socket
 import re
 import os
 
 
+# Qualities of the server we're connecting to
 DATASERVER_HOST = os.environ['DATASERVER_HOST']
 DATASERVER_PORT = int(os.environ['DATASERVER_PORT'])
 DATASERVER_BUFFSIZE = int(os.environ['DATASERVER_BUFFSIZE'])

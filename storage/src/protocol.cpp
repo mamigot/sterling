@@ -2,10 +2,13 @@
 #include <sstream>
 #include <regex>
 #include "user.h"
-#include "config.h" //take out! just for testing (calling configServer())
+#include "config.h"
 #include "protocol.h"
 using namespace std;
 
+
+// The following regex patterns are used to interpret the command that
+// the user specifies in its request
 
 /********** GET/... **********/
 regex reGet("GET/.*");
@@ -59,10 +62,13 @@ regex reUnfollow("DELETE/relations/([\\w]+):([\\w]+)\0");
 
 
 void initiateProtocol(void){
-    configServer();
+  configServer();
 }
 
 void handleRequest(int connfd, char* buff, unsigned int buffSize){
+  // This is called when a connection is received
+
+  // Read the user's request
   int n;
   if((n = read(connfd, buff, buffSize)) == -1) {
     perror("recv");
@@ -70,6 +76,7 @@ void handleRequest(int connfd, char* buff, unsigned int buffSize){
   }
   cerr << "Requested data: " << buff << ". Length: " << string(buff).length() << endl;
 
+  // Determine contents of response to the user
   vector<string> output = parseClientInput(string(buff));
   unsigned int numItems = (unsigned int) output.size();
   if(!numItems){
@@ -105,6 +112,7 @@ void handleRequest(int connfd, char* buff, unsigned int buffSize){
     return;
   }
 
+  // Send packets, one at a time
   stringstream packet;
   for(size_t i = 0; i < numItems; i++){
     packet << output[i];
@@ -155,6 +163,8 @@ ClientResponse waitForConfirmation(int connfd, const char* buff, unsigned int bu
 }
 
 vector<string> parseClientInput(const string& input){
+  // Parses user request through regular expressions, extracting the
+  // relevant arguments for each command.
   // Returns response data as a vector. When there's more than one element,
   // all are guaranteed to be of the same size.
   vector<string> output;

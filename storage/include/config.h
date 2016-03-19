@@ -6,10 +6,13 @@
 using namespace std;
 
 
+// Used to pad serialized values
 const char fillerChar = '~';
 
+// Data that is marked as inactive is effectively "deleted"
 enum Active {Yes, No, All};
 
+// The following structs define the types of stored fields
 struct Credential{
   Active active;
   string username;

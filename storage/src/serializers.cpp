@@ -4,9 +4,7 @@
 using namespace std;
 
 
-string extractField(const string& serialized, string& dataType, string& fieldType);
-
-
+// The serializers follow the formats that are specified by configParams
 string serializeCredential(Credential& credential){
   string active = credential.active == Active::Yes ? "1" : "0";
   string username = pad(credential.username, configParams["FIELD_SIZE_USERNAME"]);
@@ -64,6 +62,8 @@ bool matchesSerialized(const string& serialized, string& dataType, map<string, s
     potentialMatch = x.second;
     ser = extractField(serialized, dataType, fieldType);
 
+    // Pad fields accordingly before comparing them to their serialized
+    // counterparts. Each type of field requires a different type of padding.
     if(!fieldType.compare("USERNAME") || \
        !fieldType.compare("AUTHOR") || \
        !fieldType.compare("FIRST_USERNAME") || \
@@ -86,6 +86,8 @@ bool matchesSerialized(const string& serialized, string& dataType, map<string, s
 }
 
 string pad(const string& value, unsigned int fieldSize){
+  // Create a string of size fieldSize where value is at the right and
+  // the rest of the characters are fillers (padded)
   int extraCount = fieldSize - value.length();
 
   if(extraCount < 0){
@@ -101,6 +103,7 @@ string pad(const string& value, unsigned int fieldSize){
 }
 
 string unpad(const string& value){
+  // Removed filler characters from a string
   size_t fillerPos = value.find_last_of(fillerChar);
   return value.substr(fillerPos + 1);
 }

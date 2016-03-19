@@ -1,3 +1,4 @@
+"""Filters for Jinja templates"""
 from datetime import datetime
 
 
