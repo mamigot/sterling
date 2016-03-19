@@ -13,10 +13,10 @@ int itemMatch(const string& filePath, string& dataType, map<string, string> matc
   }
 
   // How many characters each item takes up (will read one chunk at a time)
-  unsigned int fileSize = getFileSize(filePath);
+  int fileSize = getFileSize(filePath);
 
   // Start from the bottom of the file
-  unsigned int itemSize = configParams["SERIAL_SIZE_" + dataType];
+  int itemSize = configParams["SERIAL_SIZE_" + dataType];
   int readPtr = itemSize;
 
   FILE* matchedFile;
@@ -51,10 +51,10 @@ vector<string> itemMatchSweep(const string& filePath, string& dataType, map<stri
   }
 
   // How many characters each item takes up (will read one chunk at a time)
-  unsigned int fileSize = getFileSize(filePath);
+  int fileSize = getFileSize(filePath);
 
   // Start from the bottom of the file
-  unsigned int itemSize = configParams["SERIAL_SIZE_" + dataType];
+  int itemSize = configParams["SERIAL_SIZE_" + dataType];
   int readPtr = itemSize;
 
   FILE* matchedFile;
@@ -76,7 +76,7 @@ vector<string> itemMatchSweep(const string& filePath, string& dataType, map<stri
       // Interpret limit == -1 to mean "take all".
       allMatches.push_back(item);
 
-      if(limit != -1 && allMatches.size() >= limit){
+      if(limit != -1 && (int) allMatches.size() >= limit){
         break;
       }
     }
@@ -95,10 +95,10 @@ int setActiveFlag(bool active, const string& filePath, string& dataType, map<str
     throw std::runtime_error("Given dataType is unknown");
   }
 
-  unsigned int fileSize = getFileSize(filePath);
+  int fileSize = getFileSize(filePath);
 
   // How many characters each item takes up (will read one chunk at a time)
-  unsigned int itemSize = configParams["SERIAL_SIZE_" + dataType];
+  int itemSize = configParams["SERIAL_SIZE_" + dataType];
   int readPtr = itemSize;
 
   FILE* matchedFile;

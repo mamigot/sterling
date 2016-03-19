@@ -2,6 +2,7 @@
 #include <sstream>
 #include <regex>
 #include <cstring>
+#include <unistd.h>
 #include "user.h"
 #include "config.h"
 #include "protocol.h"
