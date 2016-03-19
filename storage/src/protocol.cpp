@@ -101,7 +101,7 @@ void handleRequest(int connfd, char* buff, unsigned int buffSize){
   cerr << "Waiting for client to acknowledge" << endl;
   ClientResponse resp = waitForConfirmation(connfd, buff, buffSize);
   if(resp != ClientResponse::Ack){
-    cerr << "Did not receive the expected \"Ack\"... ending" << endl;
+    cerr << "Did not receive the expected \"ACK\"... ending" << endl;
     return;
   }
 
@@ -144,12 +144,14 @@ ClientResponse waitForConfirmation(int connfd, const char* buff, unsigned int bu
     cerr << "Receive failed" << endl;
   }
 
-  cerr << "Received from user: " << buff << endl;
-
-  if(strcmp(buff, "ACK"))
+  if(strncmp(buff, "ACK", 4)){
+    cerr << "Response from user: ACK" << endl;
     return ClientResponse::Ack;
-  else
+
+  }else{
+    cerr << "Response from user: STOP" << endl;
     return ClientResponse::Stop;
+  }
 }
 
 vector<string> parseClientInput(const string& input){
