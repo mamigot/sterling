@@ -16,6 +16,18 @@ See "Architecture" below. Backend no longer runs on the same process as the Pyth
 - Default post size is now 100 characters
 - Minor fixes (typos, unused args to functions, etc.)
 
+## Configuration and testing
+The client and the server are configured and activated through `start.sh` scripts on their respective root directories. These take care of relevant environment variables and, in the case of the server's, create the text files that are used to store the application's data. Run them on e.g. different terminal windows using `. start.sh`.
+
+Once the client and server processes are running, go to [http://127.0.0.1:5000/](http://127.0.0.1:5000/).
+
+### Possible testing workflow
+- Create `$ACCOUNT_1`
+- Sign out and create `$ACCOUNT_2`
+- Go to `$ACCOUNT_1`'s profile (`http://127.0.0.1:5000/profile/$ACCOUNT_1`) and follow him
+- Sign out and log in with `$ACCOUNT_1` to write a post
+- Sign out and log in with `$ACCOUNT_2` to view that post on your timeline
+
 ## Functionality
 A simple version of Twitter. Users are able to follow each other and write posts, which are reflected on their own profiles as well as on their followers' timelines.
 
@@ -115,15 +127,3 @@ The application divides all of its data into the following types of files:
   - Profile posts: the posts that a user has written (this makes reads on `profile/` pages as fast as reads on `timeline/` pages)
 
 The number of files of each type varies according to the size with which they're expected to grow (i.e. there are more files with posts than with credentials). These counts are specified under `config.txt`.
-
-## Configuration and testing
-The client and the server are configured and activated through `start.sh` scripts on their respective root directories. These take care of relevant environment variables and, in the case of the server's, create the text files that are used to store the application's data.
-
-Once the client and server processes are running, go to [http://127.0.0.1:5000/](http://127.0.0.1:5000/).
-
-### Possible testing workflow
-- Create `$ACCOUNT_1`
-- Sign out and create `$ACCOUNT_2`
-- Go to `$ACCOUNT_1`'s profile (`http://127.0.0.1:5000/profile/$ACCOUNT_1`) and follow him
-- Sign out and log in with `$ACCOUNT_1` to write a post
-- Sign out and log in with `$ACCOUNT_2` to view that post on your timeline
