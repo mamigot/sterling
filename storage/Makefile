@@ -1,7 +1,6 @@
+# Manage the build of the application and run it
 #
-#
-#
-# Based on the following :
+# Based on the following:
 # http://hiltmon.com/blog/2013/07/03/a-simple-c-plus-plus-project-structure/
 #
 
@@ -30,7 +29,7 @@ clean:
 	@echo " $(RM) -r $(BUILDDIR) $(TARGET)"; $(RM) -r $(BUILDDIR) $(TARGET)
 	@echo " $(RM) -r bin/*"; $(RM) -r bin/*
 
-# Tests
+# Tests (unused for now unfortunately)
 tester:
 	$(CC) $(CFLAGS) test/tester.cpp $(INC) $(LIB) -o bin/tester
 
