@@ -1,10 +1,11 @@
 import socket
 import re
+import os
 
 
-BUFFSIZE = 8192
-PORT_NUM = 13002
-HOSTNAME = 'localhost'
+DATASERVER_HOST = os.environ['DATASERVER_HOST']
+DATASERVER_PORT = int(os.environ['DATASERVER_PORT'])
+DATASERVER_BUFFSIZE = int(os.environ['DATASERVER_BUFFSIZE'])
 
 re_successful_header = re.compile(r'201: Expect packets: ([\d]+)')
 
@@ -16,7 +17,7 @@ class ErrorRetrievingFromServer(Exception):
     pass
 
 
-def request(command, host=HOSTNAME, port=PORT_NUM):
+def request(command, host=DATASERVER_HOST, port=DATASERVER_PORT):
     """Returns full string output of the command to the user (regardless of how
     many packets are sent from the server; they're all concatenated here).
 
@@ -27,7 +28,7 @@ def request(command, host=HOSTNAME, port=PORT_NUM):
     s.send(command.encode('utf-8'))
 
     # Learn how many packets are needed
-    header = s.recv(BUFFSIZE).decode('utf-8')
+    header = s.recv(DATASERVER_BUFFSIZE).decode('utf-8')
     match = re_successful_header.match(header)
 
     if match:
@@ -39,7 +40,7 @@ def request(command, host=HOSTNAME, port=PORT_NUM):
         # Receive as many packets as indicated
         output = ""
         for i in range(num_expected + 1):
-            output += s.recv(BUFFSIZE).decode('utf-8')
+            output += s.recv(DATASERVER_BUFFSIZE).decode('utf-8')
             # Signal that we have received the packet
             s.send(ClientResponseSignal.Ack)
 
