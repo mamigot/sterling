@@ -1,24 +1,45 @@
 #!/bin/bash
+#
+# Run on the server machine
+#
 
-# TODO: get absolute path
-PROJECT_ROOT=$PWD/storage/
+########################################################################
+# Parameters to communicate with the client servers (change as needed) #
+########################################################################
+
+export DATASERVER_PORT=13002
+
+export DATASERVER_BUFFSIZE=8192
+
+########################################
+# Application configuration parameters #
+########################################
+
+# The root of the project is the root of this script
+# http://stackoverflow.com/a/246128/2708484
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Make all root-level modules of the app accessible
+export PATH=$PATH:$PROJECT_ROOT/main
 
 # Application configuration variables
-CONFIG_PATH=$PROJECT_ROOT/config
+export CONFIG_PATH=$PROJECT_ROOT/config.txt
 
-############################################
-# Create storage files if they don't exist #
-############################################
-export STORAGE_FILES_PATH=$PROJECT_ROOT/main/volumes/
+# Directory wherein the application data is stored
+export STORAGE_FILES_PATH=$PROJECT_ROOT/volumes/
 
-if [ -z "$(ls $STORAGE_FILES 2>/dev/null)" ]; then
-  # Create the directory holding the files
-  mkdir $STORAGE_FILES
-
-  # Create the text files that are required to store users' data
-  $PYTHON_VERSION storage/config.py
+# Create it if it doesn't exist
+if [ -z "$(ls $STORAGE_FILES_PATH 2>/dev/null)" ]; then
+  echo "Creating directory to hold the files... $STORAGE_FILES_PATH"
+  mkdir $STORAGE_FILES_PATH
 fi
 
-###################################################
-# Start listening for connections from the client #
-###################################################
+#########################################################
+# Launch the server and start listening for connections #
+#########################################################
+
+make clean
+
+make
+
+./bin/runner
