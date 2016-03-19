@@ -29,6 +29,6 @@
   {% if secondary_username %}
     {{ utils.show_posts(posts, deleteable=False) }}
   {% else %}
-    {{ utils.show_posts(posts, deleteable=False) }}
+    {{ utils.show_posts(posts, deleteable=True) }}
   {% endif %}
 {% endblock %}
