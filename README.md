@@ -4,16 +4,24 @@ Sterling
 - **NYU CS3254**: Project (Part II)
 - Miguel Amigot [m.amigot@nyu.edu](m.amigot@nyu.edu)
 
-## Modifications (with respect to Part I)
-- See v1.1 release (all of those)
-- Forbid user from creating usernames with non-alphanumeric characters
+#### _Modifications with respect to Part I_
 
-## Functionality of the App
+##### _Architecture_
+See "Architecture" below. Backend no longer runs on the same process as the Python-based client –it is now written in C++ and communicates over sockets.
+
+##### _User Interface_
+- User feedback when logging in, registering and deactivating accounts
+- Users' posts are deleted after their accounts are deactivated
+- Ability to search for users
+- Default post size is now 100 characters
+- Minor fixes (typos, unused args to functions, etc.)
+
+## Functionality
 A simple version of Twitter. Users are able to follow each other and write posts, which are reflected on their own profiles as well as on their followers' timelines.
 
 A user's timeline contains the posts from the people he follows. One caveat is that _a user's timeline only shows the posts from the people he follows that are written after the "follow" takes place._
 
-The following features are supported:
+### Supported features:
 - Create an account / register
 - Log in with an existing account
 - Deactivate an account
@@ -23,28 +31,15 @@ The following features are supported:
 - View your own posts in your "profile"
 - Browse through friends (people you follow)
 - Browse through followers (people who follow you)
-
-### Testing
-Start by creating the files which are used for storage and start the server by running the following on the root directory of the project:
-
-```bash
-. start.sh
-```
-
-Go to [http://127.0.0.1:5000/](http://127.0.0.1:5000/).
-
-#### Possible workflow:
-- Create `$ACCOUNT_1`
-- Sign out and create `$ACCOUNT_2`
-- Go to `$ACCOUNT_1`'s profile (`http://127.0.0.1:5000/profile/$ACCOUNT_1`) and follow him
-- Sign out and log in with `$ACCOUNT_1` to write a post
-- Sign out and log in with `$ACCOUNT_2` to view that post on your timeline
+- Search for other users
 
 ## Architecture
-Flask application communicating with a Python-based backend whose data is stored across several files of multiple types –there's a type for credential information (usernames and passwords), another type for relations (friends and followers), and two that store the actual posts.
+The client is a Flask (Python) application. It communicates with a server written in C++ over sockets. The server does not have to run in the same machine as the client. All that's needed is to specify the hostname and port number that will be used via environment variables, as specified under "Configuration and testing" below.
+
+Parameters and constants that need to be shared between the client and the server are specified under a global config. file (`config.txt`) on their respective root directories.
 
 ### Reads faster than writes
-When developing a feed-based application like this one, Twitter or Facebook,  where users expect to see an aggregation of the posts of the people they follow, the developer must choose whether to prioritize the speed of reading or writing posts because, at scale, one will be drastically faster than the other.
+When developing a feed-based application like this one, Twitter or Facebook, where users expect to see an aggregation of the posts of the people they follow, the developer must choose whether to prioritize the speed of reading or writing posts because, at scale, one will be drastically faster than the other.
 
 Moreover, since reads are more important to the user experience than writes (it's impossible to know if other users are reading what you're writing immediately, but easy to tell if it takes a while for your feed to assemble), reads tend to have preference.
 
@@ -58,42 +53,77 @@ Simply, Twitter, etc. are able to maximize efficiency by "copying" the posts tha
 
 Though only through text files, this project strives for a similar objective. That is, instead of responding to your `timeline/` request by assembling a list of all of the users you follow, aggregating their most recent posts and ordering them chronologically, it _only has to read from a single file_.
 
-Consequently, writes are designed to be fairly slow in comparison. When a user saves a post, it has to be stored in not only the file wherein he keeps his own posts, but also in his users' timeline files. Thus, each user keeps track of the posts he authored in one file (`post_profile_*.txt`) and of those that he is supposed to see in another (`post_timeline_*.txt`).
+Consequently, writes are designed to be fairly slow in comparison. When a user saves a post, it has to be stored in not only the file wherein he keeps his own posts, but also in his users' timeline files. Thus, the application keeps track of the posts each user has stored in one file (`TIMELINE_POST_*.txt`) and of those that he is supposed to see in another (`TIMELINE_POST_*.txt`);
 
 In order to further increase the efficiency with which reads are made, the files with the relevant posts are read backwards. As shown in "Serialization" below, this is simple once an entry is programmed to be of a certain length (iterating is as simply as decrementing a pointer by a fixed number of bytes).
 
-### Storage
-The `start.sh` script which initializes the files used for storage, under `storage/volumes/`. These are divided into the following categories, determined by `storage/config.py`:
+### Communication protocol
+There is a series of commands that the client uses to communicate with the server. They are categorized into the following verbs, which are loosely based on HTTP's:
+- GET
+  - Retrieve stored data. Make no modifications.
+- SAVE
+  - Add to the stored data.
+- DELETE
+  - Mark a stored piece of data as inactive (this is as far as deletes go; nothing is actually deleted).
 
-- `credential_*.txt`
-  - Usernames and passwords
-- `post_timeline_*.txt`
-  - Timeline posts: aggregated from all of the people the user follows
-- `post_profile_*.txt`
-  - Profile posts: contain only the posts that a user has written (this makes reads on `profile/` pages as fast as reads on `timeline/` pages)
-- `relation_*.txt`
-  - Friends and followers: when `$USER_A` follows `$USER_B`, this is encoded as two "edges": from `$USER_A` to `$USER_B` and from `$USER_B` to `$USER_A`
+Available commands, which are parsed using Regular Expressions by the server:
+```
+- GET/credential/username\0
+- GET/credential/username:password\0
+- GET/posts/profile/username:limit\0
+- GET/posts/timeline/username:limit\0
+- GET/relations/username:friendUsername\0
+- GET/relations/followers/username:limit\0
+- GET/relations/friends/username:limit\0
+- SAVE/credential/username:password\0
+- SAVE/posts/username:text\0
+- SAVE/relations/username:friendUsername\0
+- DELETE/credential/username:password\0
+- DELETE/posts/username:timestamp\0
+- DELETE/relations/username:friendUsername\0
+```
 
-Since each user is expected to have some data in each of those files and there are, by no means, as many files as there are users, a hashing function is defined to determine the file number that corresponds to a user based on his username. The function that maps usernames and file types (credential, post_timeline, etc.) to a file's absolute path is `get_path(username, stored_type)` in `storage/utils/file_handler.py`.
+#### Workflow
+The following illustrates the workflow that the client undergoes to request data from the server:
+- The client makes a request by sending one of the commands from above, containing the relevant fields (`web/main/access.py`).
+- If the request is valid (`storage/src/protocol.cpp`), the server replies with `201: Expect packets: X`. "X" is an integer that denotes the number of packets that the user should expect to receive. If the request is invalid, the server replies with a string that starts with "500" and ends the connection to the user (starts waiting for a new one).
+- Once the client knows how many packets to expect, it replies with an `ACK` denoting that it agrees to accept that number of packets (`web/main/client.py`). If the client responds with `STOP` instead, the server ends the connection and starts waiting for a new user.
+- After receiving the `ACK`, the server starts to send its packets (tries to fit as much data as possible into a single packet, whose size is denoted by the `$DATASERVER_BUFFSIZE` environment variable). After it sends each packet, the server waits for an `ACK` by the client. Once the client has sent as many `ACK` messages as the server instructed it to at the beginning, the server ends the connection and starts waiting for a new one.
 
-The number of files that exist per type (also configurable through `storage/config.py`) was arbitrarily chosen based on how large they are expected to be and how frequently they will be accessed. This is why the number of files that hold credentials is smaller than the number of files which hold posts on a user's timeline.
+### Serialization (client-server)
+A serialization format is defined for each data type that is shared by the client and the server. Pertinent parameters such as the length of each serialized string, integers marking the start and end of each field, etc. are written on the shared `config.txt`.
 
-This is believed to be more efficient than two extreme alternatives:
-1. Put all users' information of a given type (maintain the distinction between credentials, relations, etc.) in the same file.
-2. Have one type of file per user.
-
-Though the first case would be beneficial because it is likely that all users' data will be contained in memory (once the OS reads the file into memory, it will remain there as long as it is not too large, and users will be able to reference its data without prompting additional I/O operations), it will require iterations over a lot of entries that will ultimately be discarded. The second alternative would prompt an I/O operation for essentially every user, which would be more costly than iterating through many irrelevant entries (as long as we are iterating from the back and retrieving tens of posts as opposed to thousands).
-
-### Serialization
-In order to efficiently iterate over the data in the text files, each type of data is serialized according to a given format that keeps its size uniform. For example, regardless of whether a post takes up 4 or 40 characters, it will be stored as a 100-character one. The same applies to usernames and passwords. (These sizes are specified by `UserFieldSizes` in `storage/config.py`.)
-
-The following serialization formats are enforced by `storage/utils/serializers.py`, which convert sets of parameters to strings depending on the relevant field (documented in this module):
-
+The following defines the serialized format of each data type:
+- Relation:
+  - `<active><first_username><direction><second_username>`
 - Credential:
   - `<active><username><password>`
 - Profile post:
   - `<active><username><timestamp><text>`
 - Timeline post:
   - `<active><username><author><timestamp><text>`
-- Relation:
-  - `<active><first_username><direction><second_username>`
+
+### Storage (server)
+The application divides all of its data into the following types of files:
+- `CREDENTIAL_*.txt`
+  - Usernames and passwords
+- `RELATION_*.txt`
+  - Friends and followers: when `$USER_A` follows `$USER_B`, this is encoded as two "edges": from `$USER_A` to `$USER_B` and from `$USER_B` to `$USER_A`
+- `TIMELINE_POST_*.txt`
+  - Timeline posts: aggregated from all of the people the user follows
+- `PROFILE_POST_*.txt`
+  - Profile posts: the posts that a user has written (this makes reads on `profile/` pages as fast as reads on `timeline/` pages)
+
+The number of files of each type varies according to the size with which they're expected to grow (i.e. there are more files with posts than with credentials). These counts are specified under `config.txt`.
+
+## Configuration and testing
+The client and the server are configured and activated through `start.sh` scripts on their respective root directories. These take care of relevant environment variables and, in the case of the server's, create the text files that are used to store the application's data.
+
+Once the client and server processes are running, go to [http://127.0.0.1:5000/](http://127.0.0.1:5000/).
+
+### Possible testing workflow
+- Create `$ACCOUNT_1`
+- Sign out and create `$ACCOUNT_2`
+- Go to `$ACCOUNT_1`'s profile (`http://127.0.0.1:5000/profile/$ACCOUNT_1`) and follow him
+- Sign out and log in with `$ACCOUNT_1` to write a post
+- Sign out and log in with `$ACCOUNT_2` to view that post on your timeline
