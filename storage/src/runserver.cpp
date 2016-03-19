@@ -18,11 +18,12 @@
 #include "protocol.h"
 using namespace std;
 
-
 #define SA struct sockaddr
 #define LISTENQ 1024  // 2nd argument to listen()
-#define BUFFSIZE 8192  // buffer size for reads and writes
-#define PORT_NUM 13002
+
+// Read socket parameters from env. variables (converted from strings)
+unsigned int PORT_NUM = stoi(getenv("DATASERVER_PORT"), NULL, 10);
+unsigned int BUFFSIZE = stoi(getenv("DATASERVER_BUFFSIZE"), NULL, 10);
 
 
 int main(int argc, char **argv) {
