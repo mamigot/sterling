@@ -12,7 +12,7 @@
 #include <strings.h>     // bzero
 #include <sys/socket.h>  // socket, AF_INET, SOCK_STREAM, bind, listen, accept
 #include <netinet/in.h>  // servaddr, INADDR_ANY, htons
-
+#include <cstring>
 #include <vector>
 #include <string>
 #include "protocol.h"

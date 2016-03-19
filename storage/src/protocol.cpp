@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <regex>
+#include <cstring>
 #include "user.h"
 #include "config.h"
 #include "protocol.h"

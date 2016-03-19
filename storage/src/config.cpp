@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <cstring>
 #include "filehandler.h"
 #include "utils.h"
 #include "config.h"
