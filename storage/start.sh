@@ -7,7 +7,9 @@
 # System Requirements (!!!) #
 #############################
 
-# Version 4.9 of g++ or greater (required to support regular expressions)
+# Version 4.9 or greater of g++
+echo "CHECK THAT YOU ARE USING VERSION 4.9 OF g++ OR GREATER USING 'g++ -version'."
+echo "IF YOU ARE USING AN OLDER VERSION, THE APPLICATION WILL NOT COMPILE."
 
 ########################################################################
 # Parameters to communicate with the client servers (change as needed) #
