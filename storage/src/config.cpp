@@ -66,7 +66,6 @@ void setStorageFilesPath(void){
 
 	// Check if the provided directory is valid
   if(isValidPath(path)){
-    cerr << "setting STORAGE_FILES_PATH=" << path << "\n";
     STORAGE_FILES_PATH = string(path);
   }else{
     throw std::runtime_error("STORAGE_FILES_PATH does not contain a valid path");
@@ -116,8 +115,3 @@ string getFileName(StoredFileType storedFileType, unsigned int fileNum){
   // Matches the format set by initiateStorage()
   return storedFileTypes[storedFileType] + "_" + to_string(fileNum) + ".txt";
 }
-
-
-//int main(){
-//  configServer();
-//}
