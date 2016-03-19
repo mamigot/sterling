@@ -1,40 +1,9 @@
-#include <iostream>
-#include <fstream>
 #include <sstream>
-#include <sys/stat.h>
-#include "filehandler.h"
 #include "serializers.h"
+#include "utils.h"
+#include "filehandler.h"
 using namespace std;
 
-
-bool isValidPath(const char* path){
-  struct stat info;
-
-  if(stat(path, &info) != 0){
-    return false;
-  }
-  return true;
-}
-
-bool isValidPath(const string& path){
-  return isValidPath(path.c_str());
-}
-
-unsigned int getFileSize(const string& path){
-  if(!isValidPath(path)){
-    throw std::runtime_error("Given path is invalid.");
-  }
-
-  ifstream in(path, std::ifstream::ate | std::ifstream::binary);
-  return in.tellg();
-}
-
-void appendToFile(const string& path, const string& content){
-  ofstream outfile;
-
-  outfile.open(path, ios_base::app);
-  outfile << content;
-}
 
 int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs){
   if(!configParams.count("FILE_COUNT_" + dataType)){
@@ -138,23 +107,3 @@ int setActiveFlag(bool active, const string& filePath, string& dataType, map<str
   fclose(matchedFile);
   return numModified;
 }
-
-
-/*
-int main(){
-  configServer();
-
-  string username = "petrov";
-  string filePath = getStoredFilePath(StoredFileType::CredentialFile, username);
-
-  cout << filePath << "\n";
-
-  map<string, string> matchArgs = {
-    {"USERNAME", "4444user"}
-  };
-  string dataType = "CREDENTIAL";
-  int numModified = setActiveFlag(false, filePath, dataType, matchArgs);
-
-  cout << numModified << "\n";
-}
-*/
