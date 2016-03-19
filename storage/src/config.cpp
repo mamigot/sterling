@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 #include "filehandler.h"
 #include "utils.h"
 #include "config.h"

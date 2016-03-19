@@ -1,6 +1,7 @@
 #include <sstream>
 #include <fstream>
 #include <ctime>
+#include <stdexcept>
 #include <sys/stat.h>
 #include "utils.h"
 using namespace std;

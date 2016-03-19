@@ -1,4 +1,5 @@
 #include <sstream>
+#include <stdexcept>
 #include "serializers.h"
 #include "utils.h"
 #include "filehandler.h"

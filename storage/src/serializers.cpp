@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include "serializers.h"
 using namespace std;
 
