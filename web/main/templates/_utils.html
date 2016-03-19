@@ -4,7 +4,7 @@
   {% for post in posts %}
     <em>
       <a href="{{ url_for('profile', secondary_username=post.username) }}">{{ post.username }}</a>,
-      <small>{{ post.timestamp }}</small>
+      <small>{{ post.timestamp|timestamp_to_date }}</small>
     </em>
 
     {% if deleteable %}{{ forms.delete_post(post.timestamp) }}{% endif %}
