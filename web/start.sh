@@ -3,11 +3,14 @@
 # Run on the client machine
 #
 
+PYTHON_VERSION=python3
+PIP_VERSION=pip3
+
 #######################################################
 # Uncomment the following if your environment differs #
 #######################################################
 
-#pip install -r requirements.txt
+#$PIP_VERSION install -r requirements.txt
 
 #####################################################################
 # Parameters to communicate with the data server (change as needed) #
@@ -37,7 +40,6 @@ export CONFIG_PATH=$PROJECT_ROOT/config.txt
 # Launch the app (http://127.0.0.1:5000/) #
 ###########################################
 
-PYTHON_VERSION=python3
 APP=$PROJECT_ROOT/main/app.py
 
 $PYTHON_VERSION $APP
