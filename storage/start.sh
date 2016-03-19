@@ -3,6 +3,12 @@
 # Run on the server machine
 #
 
+#############################
+# System Requirements (!!!) #
+#############################
+
+# Version 4.9 of g++ or greater (required to support regular expressions)
+
 ########################################################################
 # Parameters to communicate with the client servers (change as needed) #
 ########################################################################
