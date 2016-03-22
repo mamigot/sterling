@@ -133,7 +133,7 @@ class User:
         if output != 'success':
             raise ErrorProcessingRequest()
 
-    def get_timeline_posts(self, limit=20): # GET/posts/timeline/self.username:limit\0
+    def get_timeline_posts(self, limit=None): # GET/posts/timeline/self.username:limit\0
         """
         Returns active posts from the user's timeline.
 
@@ -159,7 +159,7 @@ class User:
 
         return posts
 
-    def get_profile_posts(self, limit=20): # GET/posts/profile/self.username:limit\0
+    def get_profile_posts(self, limit=None): # GET/posts/profile/self.username:limit\0
         """
         Returns active posts from the user's timeline.
 
@@ -217,7 +217,7 @@ class User:
         if output != 'success':
             raise ErrorProcessingRequest()
 
-    def get_followers(self, limit=20): # GET/relations/followers/self.username:limit\0
+    def get_followers(self, limit=None): # GET/relations/followers/self.username:limit\0
         """
         Returns profiles of people who follow the user.
 
@@ -238,7 +238,7 @@ class User:
 
         return usernames
 
-    def get_friends(self, limit=20): # GET/relations/friends/self.username:limit\0
+    def get_friends(self, limit=None): # GET/relations/friends/self.username:limit\0
         """
         Returns profiles of people who the user is following.
 
@@ -268,6 +268,9 @@ class Post:
 
 def get_request_command(endpoint, params):
     """Build a request command given an endpoint and its relevant parameters"""
+    if 'limit' in params and params.get('limit') is None:
+        params['limit'] = -1 # Server accepts "unlimited" as "-1"
+
     if endpoint == 'exists':
         return 'GET/credential/%s\0' % params.get('username')
 
