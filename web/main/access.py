@@ -1,12 +1,6 @@
 import config, client, serializers
 
 
-class UsernameAlreadyExists(Exception):
-    pass
-
-class CannotVerifyCredential(Exception):
-    pass
-
 class ErrorProcessingRequest(Exception):
     pass
 
@@ -49,7 +43,7 @@ class User:
         if output == 'true':
             return True
         else:
-            raise CannotVerifyCredential()
+            raise ErrorProcessingRequest()
 
     def save_credential(self): # SAVE/credential/self.username:self.password\0
         """
@@ -73,7 +67,7 @@ class User:
         if output == 'success':
             return True
         else:
-            raise UsernameAlreadyExists()
+            raise ErrorProcessingRequest()
 
     def delete_credential(self): # DELETE/credential/self.username:self.password\0
         """
@@ -95,7 +89,7 @@ class User:
         output = client.request(command)
 
         if output != 'success':
-            raise CannotVerifyCredential()
+            raise ErrorProcessingRequest()
 
     def save_post(self, text): # SAVE/posts/self.username:text\0
         """
