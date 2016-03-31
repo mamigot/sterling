@@ -16,10 +16,10 @@ class User:
         True if there's an active user with the provided username in the system.
         Otherwise, False.
         """
-        command = get_request_command('exists', dict(username=self.username))
-
+        command = 'GET/credential/%s\0' % self.username
         output = client.request(command)
-        return True if output == 'true' else False
+
+        return output == 'true'
 
     def verify_credential(self): # GET/credential/self.username:self.password\0
         """
@@ -34,15 +34,10 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-        command = get_request_command('verify_credential', dict(
-            username=self.username, password=self.password
-        ))
-
+        command = 'GET/credential/%s:%s\0' % (self.username, self.password)
         output = client.request(command)
 
-        if output == 'true':
-            return True
-        else:
+        if output != 'true':
             raise ErrorProcessingRequest()
 
     def save_credential(self): # SAVE/credential/self.username:self.password\0
@@ -58,15 +53,10 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-        command = get_request_command('save_credential', dict(
-            username=self.username, password=self.password
-        ))
-
+        command = 'SAVE/credential/%s:%s\0' % (self.username, self.password)
         output = client.request(command)
 
-        if output == 'success':
-            return True
-        else:
+        if output != 'success':
             raise ErrorProcessingRequest()
 
     def delete_credential(self): # DELETE/credential/self.username:self.password\0
@@ -82,10 +72,7 @@ class User:
         if not hasattr(self, 'password'):
             raise AttributeError("Provide the user's password.")
 
-        command = get_request_command('delete_credential', dict(
-            username=self.username, password=self.password
-        ))
-
+        command = 'DELETE/credential/%s:%s\0' % (self.username, self.password)
         output = client.request(command)
 
         if output != 'success':
@@ -99,10 +86,7 @@ class User:
         Args:
             text (str): text content of the post
         """
-        command = get_request_command('save_post', dict(
-            username=self.username, text=text
-        ))
-
+        command = 'SAVE/posts/%s:%s\0' % (self.username, text)
         output = client.request(command)
 
         if output != 'success':
@@ -118,27 +102,22 @@ class User:
             timestamp (type(time.time()) == float): UTC timestamp identifying
                 the post
         """
-        command = get_request_command('delete_post', dict(
-            username=self.username, timestamp=timestamp
-        ))
-
+        command = 'DELETE/posts/%s:%s\0' % (self.username, timestamp)
         output = client.request(command)
 
         if output != 'success':
             raise ErrorProcessingRequest()
 
-    def get_timeline_posts(self, limit=None): # GET/posts/timeline/self.username:limit\0
+    def get_timeline_posts(self, limit=-1): # GET/posts/timeline/self.username:limit\0
         """
         Returns active posts from the user's timeline.
 
         Args:
-            limit (int): the max. number of returned posts
+            limit (int): the max. number of returned posts. -1 means no limit.
         """
-        command = get_request_command('get_timeline_posts', dict(
-            username=self.username, limit=limit
-        ))
-
+        command = 'GET/posts/timeline/%s:%s\0' % (self.username, limit)
         output = client.request(command)
+
         serialized_posts = split_chunk(output, config.SERIAL_SIZE_TIMELINE_POST)
 
         posts = []
@@ -153,18 +132,16 @@ class User:
 
         return posts
 
-    def get_profile_posts(self, limit=None): # GET/posts/profile/self.username:limit\0
+    def get_profile_posts(self, limit=-1): # GET/posts/profile/self.username:limit\0
         """
         Returns active posts from the user's timeline.
 
         Args:
-            limit (int): the max. number of returned posts
+            limit (int): the max. number of returned posts. -1 means no limit.
         """
-        command = get_request_command('get_profile_posts', dict(
-            username=self.username, limit=limit
-        ))
-
+        command = 'GET/posts/profile/%s:%s\0' % (self.username, limit)
         output = client.request(command)
+
         serialized_posts = split_chunk(output, config.SERIAL_SIZE_PROFILE_POST)
 
         posts = []
@@ -178,21 +155,16 @@ class User:
         """
         True if the user is following "friend". Otherwise, False.
         """
-        command = get_request_command('is_following', dict(
-            username=self.username, friend_username=friend.username
-        ))
-
+        command = 'GET/relations/%s:%s\0' % (self.username, friend.username)
         output = client.request(command)
+
         return output == 'true'
 
     def follow(self, friend): # SAVE/relations/self.username:friend.username\0
         """
         Record the user's follow to "friend".
         """
-        command = get_request_command('follow', dict(
-            username=self.username, friend_username=friend.username
-        ))
-
+        command = 'SAVE/relations/%s:%s\0' % (self.username, friend.username)
         output = client.request(command)
 
         if output != 'success':
@@ -202,27 +174,22 @@ class User:
         """
         Record the user's unfollow to "friend".
         """
-        command = get_request_command('unfollow', dict(
-            username=self.username, friend_username=friend.username
-        ))
-
+        command = 'DELETE/relations/%s:%s\0' % (self.username, friend.username)
         output = client.request(command)
 
         if output != 'success':
             raise ErrorProcessingRequest()
 
-    def get_followers(self, limit=None): # GET/relations/followers/self.username:limit\0
+    def get_followers(self, limit=-1): # GET/relations/followers/self.username:limit\0
         """
         Returns profiles of people who follow the user.
 
         Args:
-            limit (int): the max. number of returned profiles
+            limit (int): the max. number of returned profiles. -1 means no limit.
         """
-        command = get_request_command('get_followers', dict(
-            username=self.username, limit=limit
-        ))
-
+        command = 'GET/relations/followers/%s:%s\0' % (self.username, limit)
         output = client.request(command)
+
         serialized_relations = split_chunk(output, config.SERIAL_SIZE_RELATION)
 
         usernames = []
@@ -232,18 +199,16 @@ class User:
 
         return usernames
 
-    def get_friends(self, limit=None): # GET/relations/friends/self.username:limit\0
+    def get_friends(self, limit=-1): # GET/relations/friends/self.username:limit\0
         """
         Returns profiles of people who the user is following.
 
         Args:
-            limit (int): the max. number of returned profiles
+            limit (int): the max. number of returned profiles. -1 means no limit.
         """
-        command = get_request_command('get_friends', dict(
-            username=self.username, limit=limit
-        ))
-
+        command = 'GET/relations/friends/%s:%s\0' % (self.username, limit)
         output = client.request(command)
+
         serialized_relations = split_chunk(output, config.SERIAL_SIZE_RELATION)
 
         usernames = []
@@ -259,74 +224,6 @@ class Post:
         self.username = username
         self.timestamp = timestamp
         self.text = text
-
-def get_request_command(endpoint, params):
-    """Build a request command given an endpoint and its relevant parameters"""
-    if 'limit' in params and params.get('limit') is None:
-        params['limit'] = -1 # Server accepts "unlimited" as "-1"
-
-    if endpoint == 'exists':
-        return 'GET/credential/%s\0' % params.get('username')
-
-    elif endpoint == 'verify_credential':
-        return 'GET/credential/%s:%s\0' % (
-            params.get('username'), params.get('password')
-        )
-
-    elif endpoint == 'save_credential':
-        return 'SAVE/credential/%s:%s\0' % (
-            params.get('username'), params.get('password')
-        )
-
-    elif endpoint == 'delete_credential':
-        return 'DELETE/credential/%s:%s\0' % (
-            params.get('username'), params.get('password')
-        )
-
-    elif endpoint == 'save_post':
-        return 'SAVE/posts/%s:%s\0' % (
-            params.get('username'), params.get('text')
-        )
-
-    elif endpoint == 'delete_post':
-        return 'DELETE/posts/%s:%s\0' % (
-            params.get('username'), params.get('timestamp')
-        )
-
-    elif endpoint == 'get_timeline_posts':
-        return 'GET/posts/timeline/%s:%s\0' % (
-            params.get('username'), params.get('limit')
-        )
-
-    elif endpoint == 'get_profile_posts':
-        return 'GET/posts/profile/%s:%s\0' % (
-            params.get('username'), params.get('limit')
-        )
-
-    elif endpoint == 'is_following':
-        return 'GET/relations/%s:%s\0' % (
-            params.get('username'), params.get('friend_username')
-        )
-
-    elif endpoint == 'follow':
-        return 'SAVE/relations/%s:%s\0' % (
-            params.get('username'), params.get('friend_username')
-        )
-
-    elif endpoint == 'unfollow':
-        return 'DELETE/relations/%s:%s\0' % (
-            params.get('username'), params.get('friend_username')
-        )
-
-    elif endpoint == 'get_followers':
-        return 'GET/relations/followers/%s:%s\0' % (
-            params.get('username'), params.get('limit')
-        )
-
-    elif endpoint == 'get_friends':
-        return 'GET/relations/friends/%s:%s\0' % (
-            params.get('username'), params.get('limit')
-        )
 
 def split_chunk(chunk, unit_size):
     """Split string into items whose size is given by unit_size"""
