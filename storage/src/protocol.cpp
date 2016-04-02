@@ -63,10 +63,6 @@ regex reDeletePost("DELETE/posts/([a-z]+):([0-9]{10})\0");
 regex reUnfollow("DELETE/relations/([a-z]+):([a-z]+)\0");
 
 
-void initiateProtocol(void){
-  configServer();
-}
-
 void handleRequest(int connfd, char* buff, unsigned int buffSize){
   // This is called when a connection is received
 

@@ -9,9 +9,6 @@ using namespace std;
 // "Ack" == everything's ok; "Stop" == cease communications
 enum ClientResponse {Ack, Stop};
 
-// Perform necessary configurations before listening for connections
-void initiateProtocol(void);
-
 // Analyze the user's request, perform the required action, and reply
 void handleRequest(int connfd, char* buff, unsigned int buffSize);
 

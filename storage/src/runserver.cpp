@@ -11,6 +11,7 @@
 #include <sys/socket.h>  // socket, AF_INET, SOCK_STREAM, bind, listen, accept
 #include <netinet/in.h>  // servaddr, INADDR_ANY, htons
 #include <cstring>
+#include "config.h"
 #include "protocol.h"
 
 #define SA struct sockaddr
@@ -22,7 +23,8 @@ unsigned int BUFFSIZE = stoi(getenv("DATASERVER_BUFFSIZE"), NULL, 10);
 
 
 int main(int argc, char **argv) {
-  initiateProtocol();
+  // Perform necessary configurations before listening for connections
+  configServer();
 
   int listenfd, connfd;  // Unix file descriptors
   struct sockaddr_in servaddr;  // Note C use of struct
