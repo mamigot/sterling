@@ -8,15 +8,10 @@
 #include <stdio.h>       // perror, snprintf
 #include <stdlib.h>      // exit
 #include <unistd.h>      // close, write
-#include <string.h>      // strlen
-#include <strings.h>     // bzero
 #include <sys/socket.h>  // socket, AF_INET, SOCK_STREAM, bind, listen, accept
 #include <netinet/in.h>  // servaddr, INADDR_ANY, htons
 #include <cstring>
-#include <vector>
-#include <string>
 #include "protocol.h"
-using namespace std;
 
 #define SA struct sockaddr
 #define LISTENQ 1024  // 2nd argument to listen()
@@ -48,7 +43,7 @@ int main(int argc, char **argv) {
   servaddr.sin_port = htons(PORT_NUM);// daytime server
 
   // 3. "Bind" that address object to our listening file descriptor
-  if (bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
+  if (::bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
     perror("Unable to bind port");
     exit(2);
   }
