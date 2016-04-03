@@ -6,6 +6,11 @@
 using namespace std;
 
 
+// Server connection parameters (get from environment variables)
+const unsigned int PORT_NUM = stoi(getenv("DATASERVER_PORT"), NULL, 10);
+// Max. size of the buffer used to transport data between the server and client
+const unsigned int BUFFSIZE = stoi(getenv("DATASERVER_BUFFSIZE"), NULL, 10);
+
 // Used to pad serialized values
 const char fillerChar = '~';
 
@@ -56,7 +61,6 @@ extern map<StoredFileType, string> storedFileTypes;
 
 // Configuration parameters/constants of the application
 extern map<string, int> configParams;
-
 
 // Before each session: creates the user data files of the application if they
 // don't exist and makes other relevant params available

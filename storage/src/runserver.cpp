@@ -1,10 +1,3 @@
-/*
-   From Stevens Unix Network Programming, vol 1.
-   Minor modifications by John Sterling
-
-   Application to the assignment by Miguel Amigot
- */
-
 #include <stdio.h>       // perror, snprintf
 #include <stdlib.h>      // exit
 #include <unistd.h>      // close, write
@@ -17,18 +10,16 @@
 #define SA struct sockaddr
 #define LISTENQ 1024  // 2nd argument to listen()
 
-// Read socket parameters from env. variables (converted from strings)
-unsigned int PORT_NUM = stoi(getenv("DATASERVER_PORT"), NULL, 10);
-unsigned int BUFFSIZE = stoi(getenv("DATASERVER_BUFFSIZE"), NULL, 10);
+
+void launchDispatcher(const int listenfd);
 
 
 int main(int argc, char **argv) {
   // Perform necessary configurations before listening for connections
   configServer();
 
-  int listenfd, connfd;  // Unix file descriptors
-  struct sockaddr_in servaddr;  // Note C use of struct
-  char buff[BUFFSIZE];
+  int listenfd; // Unix file descriptor
+  struct sockaddr_in servaddr;
 
   // 1. Create the socket
   if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -37,12 +28,10 @@ int main(int argc, char **argv) {
   }
 
   // 2. Set up the sockaddr_in
-  // zero it.
-  memset(&servaddr, 0, sizeof(servaddr));
-  servaddr.sin_family = AF_INET;// Specify the family
-  // use any network card present
-  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  servaddr.sin_port = htons(PORT_NUM);// daytime server
+  memset(&servaddr, 0, sizeof(servaddr)); // Zero it
+  servaddr.sin_family = AF_INET; // Specify the family
+  servaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Use any network card present
+  servaddr.sin_port = htons(PORT_NUM); // Daytime server
 
   // 3. "Bind" that address object to our listening file descriptor
   if (::bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
@@ -57,11 +46,17 @@ int main(int argc, char **argv) {
     exit(3);
   }
 
+  // Prepare for requests and handle them as they come
+  launchDispatcher(listenfd);
+}
+
+void launchDispatcher(const int listenfd){
+  int connfd;
+
+  // Block until someone connects.
   for (;;) {
-    // 5. Block until someone connects.
-    //    We could provide a sockaddr if we wanted to know details of whom
-    //    we are talking to.
-    //    Last arg is where to put the size of the sockaddr if we asked for one
+    // We could provide a sockaddr if we wanted to know details of whom we are
+    // talking to.
     fprintf(stderr, "Ready to connect.\n");
     if ((connfd = accept(listenfd, (SA *) NULL, NULL)) == -1) {
       perror("accept failed");
@@ -70,7 +65,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Connected.\n");
 
     // We have a connection. Do whatever our task is.
-    handleRequest(connfd, buff, BUFFSIZE);
+    handleRequest(connfd);
 
     // 6. Close the connection with the current client and go back for another.
     close(connfd);

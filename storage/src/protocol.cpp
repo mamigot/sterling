@@ -36,7 +36,6 @@ regex reGetFollowers("GET/relations/followers/([a-z]+):(-?[0-9]+)\0");
 // GET/relations/friends/username:limit\0
 regex reGetFriends("GET/relations/friends/([a-z]+):(-?[0-9]+)\0");
 
-
 /********** SAVE/... **********/
 regex reSave("SAVE/.*");
 
@@ -48,7 +47,6 @@ regex reSavePost("SAVE/posts/([a-z]+):(.*)\0");
 
 // SAVE/relations/username:friendUsername\0
 regex reFollow("SAVE/relations/([a-z]+):([a-z]+)\0");
-
 
 /********** DELETE/... **********/
 regex reDelete("DELETE/.*");
@@ -62,199 +60,242 @@ regex reDeletePost("DELETE/posts/([a-z]+):([0-9]{10})\0");
 // DELETE/relations/username:friendUsername\0
 regex reUnfollow("DELETE/relations/([a-z]+):([a-z]+)\0");
 
+enum ClientSignal {Ack, Stop, Unknown};
 
-void handleRequest(int connfd, char* buff, unsigned int buffSize){
-  // This is called when a connection is received
+enum ServerSignal {Success, Error};
 
-  // Read the user's request
-  int n;
-  if((n = read(connfd, buff, buffSize)) == -1) {
-    perror("recv");
-    exit(1);
-  }
-  cerr << "Requested data: " << buff << ". Length: " << string(buff).length() << endl;
+typedef struct {
+  char* data;
+  unsigned int length;
+} TransportBuffer;
 
-  // Determine contents of response to the user
-  vector<string> output = parseClientInput(string(buff));
-  unsigned int numItems = (unsigned int) output.size();
-  if(!numItems){
-    cerr << "Don't have anything to reply... ending" << endl;
-    return;
-  }
+class ServerResponse {
+public:
+  ServerResponse(const string& singleItem) : singleItem(singleItem), itemSize(singleItem.length()), numItems(1) {}
 
-  // All elements (strings) are guaranteed to be of the same size
-  unsigned int singleItemSize = output[0].length();
-  cerr << "Single item size: " << singleItemSize << endl;
+  ServerResponse(const vector<string>& multipleItems) : multipleItems(multipleItems), numItems(multipleItems.size()) {
+    if(numItems > 0){
+      unsigned int tempItemSize = multipleItems[0].length();
 
-  if(singleItemSize > buffSize){
-    /*** Tell the client ***/
-    string msg = "500: Response is too big to fit in the given buffer. Cancelling.";
-    cerr << msg << endl;
-    respondToClient(connfd, msg.c_str(), buffSize);
-    /*** Done telling the client ***/
-  }
+      for(string item:multipleItems)
+        if(item.length() != tempItemSize)
+          throw std::runtime_error("Not all items in the response are of the same length.");
 
-  unsigned int maxItemsPerPacket = buffSize / singleItemSize;
-  unsigned int numPacketsToExpect = numItems / maxItemsPerPacket + 1;
-
-  /*** Tell the client ***/
-  string msg = "201: Expect packets: " + std::to_string(numPacketsToExpect);
-  cerr << msg << endl;
-  respondToClient(connfd, msg.c_str(), buffSize);
-  /*** Done telling the client ***/
-
-  cerr << "Waiting for client to acknowledge" << endl;
-  ClientResponse resp = waitForConfirmation(connfd, buff, buffSize);
-  if(resp != ClientResponse::Ack){
-    cerr << "Did not receive the expected \"ACK\"... ending" << endl;
-    return;
-  }
-
-  // Send packets, one at a time
-  stringstream packet;
-  for(size_t i = 0; i < numItems; i++){
-    packet << output[i];
-
-    if(!(i % maxItemsPerPacket) || i == numItems - 1){
-      /*** Send the packet to the client ***/
-      string packetContent = packet.str();
-      cerr << "Sending: " << packetContent << endl;
-      respondToClient(connfd, packetContent.c_str(), buffSize);
-      /*** Done sending the packet to the client ***/
-
-      resp = waitForConfirmation(connfd, buff, buffSize);
-      if(resp == ClientResponse::Ack){
-        // Reset the string stream and continue
-        packet.str("");
-        packet.clear();
-      }else{
-        // Finished
-        break;
-      }
+      // Now that we know that all elements are of the same length, set it
+      itemSize = tempItemSize;
     }
   }
-}
 
-int respondToClient(int connfd, const char* buff, unsigned int buffSize){
-  int len = strlen(buff);
-  if (len != write(connfd, buff, strlen(buff))) {
-    cerr << "Write to connection failed" << endl;
+  ServerResponse(const bool& conditional) {
+    if(conditional) singleItem = "true";
+    else singleItem = "false";
+
+    itemSize = singleItem.length();
+    numItems = 1;
   }
 
-  return len;
-}
+  ServerResponse(const ServerSignal& status) {
+    if(status == ServerSignal::Success) singleItem = "success";
+    else if(status == ServerSignal::Error) singleItem = "error";
 
-ClientResponse waitForConfirmation(int connfd, const char* buff, unsigned int buffSize){
-  int n;
-  if((n = read(connfd, (void *) buff, buffSize)) == -1) {
-    cerr << "Receive failed" << endl;
+    itemSize = singleItem.length();
+    numItems = 1;
   }
 
-  if(strncmp(buff, "ACK", 4)){
-    cerr << "Response from user: ACK" << endl;
-    return ClientResponse::Ack;
+  string getSingleItem() const { return singleItem; }
 
-  }else{
-    cerr << "Response from user: STOP" << endl;
-    return ClientResponse::Stop;
-  }
+  vector<string> getMultipleItems() const { return multipleItems; }
+
+  unsigned int getItemSize() const { return itemSize; }
+
+  unsigned int getNumItems() const { return numItems; }
+
+private:
+  string singleItem;
+  vector<string> multipleItems;
+  unsigned int itemSize;
+  unsigned int numItems;
+};
+
+
+ClientSignal waitForClientSignal(const int connfd, const TransportBuffer& buff);
+
+ServerResponse parseRequest(const int connfd, TransportBuffer& buff);
+
+void respond(const int connfd, const ServerResponse& resp, TransportBuffer& buff);
+
+void sendPacket(const int connfd, const string& content, const int buffSize);
+
+
+void handleRequest(const int connfd){
+  char data[BUFFSIZE];
+  TransportBuffer buff = {data, BUFFSIZE};
+
+  ServerResponse resp = parseRequest(connfd, std::ref(buff));
+  respond(connfd, std::ref(resp), std::ref(buff));
 }
 
-vector<string> parseClientInput(const string& input){
-  // Parses user request through regular expressions, extracting the
-  // relevant arguments for each command.
-  // Returns response data as a vector. When there's more than one element,
-  // all are guaranteed to be of the same size.
-  vector<string> output;
+ServerResponse parseRequest(const int connfd, TransportBuffer& buff){
+  // Read from the file descriptor
+  if(read(connfd, buff.data, buff.length) == -1) {
+    cerr << "Error reading from connfd" << endl;
+    exit(1);
+  }
+
+  string input(buff.data);
+  cerr << "Requested data: " << buff.data << ". Length: " << input.length() << endl;
+
+  // Determine which command the request matches against
   smatch matches;
 
   if(regex_match(input, matches, reGet)){
     // Match against all GET patterns
     if(regex_match(input, matches, reExists)){
       string username = matches[1];
-
-      if(exists(username)) output.push_back("true");
-      else output.push_back("false");
+      return ServerResponse(exists(username));
 
     }else if(regex_match(input, matches, reVerifyCredential)){
       string username = matches[1], password = matches[2];
-
-      if(verifyCredential(username, password)) output.push_back("true");
-      else output.push_back("false");
+      return ServerResponse(verifyCredential(username, password));
 
     }else if(regex_match(input, matches, reGetProfilePosts)){
       string username = matches[1];
       int limit = stoi(matches[2], NULL, 10);
-
-      output = getProfilePosts(username, limit);
+      return ServerResponse(getProfilePosts(username, limit));
 
     }else if(regex_match(input, matches, reGetTimelinePosts)){
       string username = matches[1];
       int limit = stoi(matches[2], NULL, 10);
-
-      output = getTimelinePosts(username, limit);
+      return ServerResponse(getTimelinePosts(username, limit));
 
     }else if(regex_match(input, matches, reIsFollowing)){
       string username = matches[1], friendUsername = matches[2];
-
-      if(isFollowing(username, friendUsername)) output.push_back("true");
-      else output.push_back("false");
+      return ServerResponse(isFollowing(username, friendUsername));
 
     }else if(regex_match(input, matches, reGetFollowers)){
       string username = matches[1];
       int limit = stoi(matches[2], NULL, 10);
-
-      output = getFollowers(username, limit);
+      return ServerResponse(getFollowers(username, limit));
 
     }else if(regex_match(input, matches, reGetFriends)){
       string username = matches[1];
       int limit = stoi(matches[2], NULL, 10);
-
-      output = getFriends(username, limit);
+      return ServerResponse(getFriends(username, limit));
     }
 
-  }else if(regex_match(input, matches, reSave)){
-    // Match against all SAVE patterns
-    if(regex_match(input, matches, reSaveCredential)){
-      string username = matches[1], password = matches[2];
+  }else{
+    bool succeeded = false;
 
-      if(saveCredential(username, password)) output.push_back("success");
-      else output.push_back("error");
+    if(regex_match(input, matches, reSave)){
+      // Match against all SAVE patterns
+      if(regex_match(input, matches, reSaveCredential)){
+        string username = matches[1], password = matches[2];
+        succeeded = saveCredential(username, password);
 
-    }else if(regex_match(input, matches, reSavePost)){
-      string username = matches[1], text = matches[2];
+      }else if(regex_match(input, matches, reSavePost)){
+        string username = matches[1], text = matches[2];
+        succeeded = savePost(username, text);
 
-      if(savePost(username, text)) output.push_back("success");
-      else output.push_back("error");
+      }else if(regex_match(input, matches, reFollow)){
+        string username = matches[1], friendUsername = matches[2];
+        succeeded = follow(username, friendUsername);
+      }
 
-    }else if(regex_match(input, matches, reFollow)){
-      string username = matches[1], friendUsername = matches[2];
+    }else if(regex_match(input, matches, reDelete)){
+      // Match against all DELETE patterns
+      if(regex_match(input, matches, reDeleteCredential)){
+        string username = matches[1], password = matches[2];
+        succeeded = deleteCredential(username, password);
 
-      if(follow(username, friendUsername)) output.push_back("success");
-      else output.push_back("error");
+      }else if(regex_match(input, matches, reDeletePost)){
+        string username = matches[1], timestamp = matches[2];
+        succeeded = deletePost(username, timestamp);
+
+      }else if(regex_match(input, matches, reUnfollow)){
+        string username = matches[1], friendUsername = matches[2];
+        succeeded = unfollow(username, friendUsername);
+      }
     }
 
-  }else if(regex_match(input, matches, reDelete)){
-    // Match against all DELETE patterns
-    if(regex_match(input, matches, reDeleteCredential)){
-      string username = matches[1], password = matches[2];
-
-      if(deleteCredential(username, password)) output.push_back("success");
-      else output.push_back("error");
-
-    }else if(regex_match(input, matches, reDeletePost)){
-      string username = matches[1], timestamp = matches[2];
-
-      if(deletePost(username, timestamp)) output.push_back("success");
-      else output.push_back("error");
-
-    }else if(regex_match(input, matches, reUnfollow)){
-      string username = matches[1], friendUsername = matches[2];
-
-      if(unfollow(username, friendUsername)) output.push_back("success");
-      else output.push_back("error");
-    }
+    if(succeeded) return ServerResponse(ServerSignal::Success);
   }
 
-  return output;
+  // If nothing has matched, return an error
+  return ServerResponse(ServerSignal::Error);
+}
+
+void respond(const int connfd, const ServerResponse& resp, TransportBuffer& buff){
+  // Check if the response fits the criteria to be sent
+  unsigned int singleItemSize, numItems, maxItemsPerPacket, numPacketsToExpect;
+  string msg;
+
+  if((singleItemSize = resp.getItemSize()) > buff.length){
+    msg = "500: Response is too big to fit in the given buffer. Cancelling.";
+    sendPacket(connfd, msg, buff.length);
+  }
+
+  if(!(numItems = resp.getNumItems())){
+    cerr << "Don't have anything to reply... ending connection" << endl;
+    return;
+  }
+
+  maxItemsPerPacket = buff.length / singleItemSize;
+  numPacketsToExpect = numItems / maxItemsPerPacket + 1;
+
+  // Let the client know how many packets to expect
+  msg = "201: Expect packets: " + to_string(numPacketsToExpect);
+  sendPacket(connfd, msg, buff.length);
+
+  // Wait for the client's acknowledgement and quit if not Ack
+  if(waitForClientSignal(connfd, buff) != ClientSignal::Ack) return;
+
+  if(!resp.getMultipleItems().empty()){
+    // Send the packets, one at a time
+    vector<string> items = resp.getMultipleItems();
+
+    stringstream packetStream;
+    for(size_t i = 0; i < numItems; i++){
+      packetStream << items[i];
+
+      if(!(i % maxItemsPerPacket) || i == numItems - 1){
+        sendPacket(connfd, packetStream.str(), buff.length);
+
+        if(waitForClientSignal(connfd, buff) == ClientSignal::Ack){
+          packetStream.str(""); // Reset the string stream and continue
+          packetStream.clear();
+        }
+      }
+    }
+  }else if(!resp.getSingleItem().empty()){
+    // Only one item to send
+    sendPacket(connfd, resp.getSingleItem(), buff.length);
+  }
+}
+
+ClientSignal waitForClientSignal(const int connfd, const TransportBuffer& buff){
+  if(read(connfd, buff.data, buff.length) == -1) {
+    cerr << "Receive failed" << endl;
+  }
+
+  if(strncmp(buff.data, "ACK", 4)){
+    cerr << "Response from user: ACK" << endl;
+    return ClientSignal::Ack;
+
+  }else if(strncmp(buff.data, "STOP", 5)){
+    cerr << "Response from user: STOP" << endl;
+    return ClientSignal::Stop;
+
+  }else{
+    cerr << "Response from user: [unknown]" << endl;
+    return ClientSignal::Unknown;
+  }
+}
+
+void sendPacket(const int connfd, const string& content, const int buffSize){
+  cerr << "Sending: '" << content << "'" << endl;
+
+  int len;
+  if((len = write(connfd, content.c_str(), buffSize)) != content.length()) {
+    cerr << "Write to connection failed. Wrote: " << len << " but expected: " << content.length() << endl;
+  }
 }
