@@ -74,10 +74,11 @@ public:
   ServerResponse(const string& singleItem) : singleItem(singleItem), itemSize(singleItem.length()), numItems(1) {}
 
   ServerResponse(const vector<string>& multipleItems) : multipleItems(multipleItems), numItems(multipleItems.size()) {
-    if(numItems > 0){
+    if(!numItems) itemSize = 0;
+    else{
       unsigned int tempItemSize = multipleItems[0].length();
 
-      for(string item:multipleItems)
+      for(auto& item:multipleItems)
         if(item.length() != tempItemSize)
           throw std::runtime_error("Not all items in the response are of the same length.");
 
@@ -133,6 +134,27 @@ void handleRequest(const int connfd){
 
   ServerResponse resp = parseRequest(connfd, std::ref(buff));
   respond(connfd, std::ref(resp), std::ref(buff));
+
+  cerr << "Finished." << endl;
+}
+
+ClientSignal waitForClientSignal(const int connfd, const TransportBuffer& buff){
+  if(read(connfd, buff.data, buff.length) == -1){
+    cerr << "Receive failed" << endl;
+  }
+
+  if(strncmp(buff.data, "ACK", 4)){
+    cerr << "Response from user: ACK" << endl;
+    return ClientSignal::Ack;
+
+  }else if(strncmp(buff.data, "STOP", 5)){
+    cerr << "Response from user: STOP" << endl;
+    return ClientSignal::Stop;
+
+  }else{
+    cerr << "Response from user: [unknown]" << endl; // TODO: HAVE A TIMEOUT HERE AND RETURN THIS AFTER A WHILE
+    return ClientSignal::Unknown;
+  }
 }
 
 ServerResponse parseRequest(const int connfd, TransportBuffer& buff){
@@ -247,7 +269,9 @@ void respond(const int connfd, const ServerResponse& resp, TransportBuffer& buff
   sendPacket(connfd, msg, buff.length);
 
   // Wait for the client's acknowledgement and quit if not Ack
-  if(waitForClientSignal(connfd, buff) != ClientSignal::Ack) return;
+  if(waitForClientSignal(connfd, buff) != ClientSignal::Ack){
+    cerr << "Did not receive an ACK from the user. Quitting..." << endl;
+  }
 
   if(!resp.getMultipleItems().empty()){
     // Send the packets, one at a time
@@ -272,30 +296,10 @@ void respond(const int connfd, const ServerResponse& resp, TransportBuffer& buff
   }
 }
 
-ClientSignal waitForClientSignal(const int connfd, const TransportBuffer& buff){
-  if(read(connfd, buff.data, buff.length) == -1) {
-    cerr << "Receive failed" << endl;
-  }
-
-  if(strncmp(buff.data, "ACK", 4)){
-    cerr << "Response from user: ACK" << endl;
-    return ClientSignal::Ack;
-
-  }else if(strncmp(buff.data, "STOP", 5)){
-    cerr << "Response from user: STOP" << endl;
-    return ClientSignal::Stop;
-
-  }else{
-    cerr << "Response from user: [unknown]" << endl;
-    return ClientSignal::Unknown;
-  }
-}
-
 void sendPacket(const int connfd, const string& content, const int buffSize){
-  cerr << "Sending: '" << content << "'" << endl;
-
-  int len;
-  if((len = write(connfd, content.c_str(), buffSize)) != content.length()) {
-    cerr << "Write to connection failed. Wrote: " << len << " but expected: " << content.length() << endl;
+  if(write(connfd, content.c_str(), buffSize) == -1){
+    cerr << "Write to connection failed." << endl;
   }
+
+  cerr << "Sent: '" << content << "'" << endl;
 }
