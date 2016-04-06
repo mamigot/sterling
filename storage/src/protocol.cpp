@@ -293,6 +293,8 @@ void respond(const int connfd, const ServerResponse& resp, TransportBuffer& buff
   }else if(!resp.getSingleItem().empty()){
     // Only one item to send
     sendPacket(connfd, resp.getSingleItem(), buff.length);
+    // Wait for confirmation from the client
+    waitForClientSignal(connfd, buff);
   }
 }
 
