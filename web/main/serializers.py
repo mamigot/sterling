@@ -317,21 +317,8 @@ def extract_field(serialized, data_type, field_type):
 
 def pad(value, field_size, filler_char='~'):
     """Pad value with as many filler_chars as field_size requires"""
-    extra_count = field_size - len(value)
-
-    if extra_count < 0:
-        raise ValueError('Given value exceeds specified field_size')
-
-    return (filler_char * extra_count) + value
+    return value.rjust(field_size, filler_char)
 
 def unpad(value, filler_char='~'):
     """Remove all starting filler_chars from value"""
-    bad_count = 0
-
-    for char in value:
-        if char == filler_char:
-            bad_count += 1
-        else:
-            break
-
-    return value[bad_count:]
+    return value.lstrip(filler_char)
