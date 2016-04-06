@@ -7,71 +7,74 @@
 using namespace std;
 
 
-LReader::LReader(const string& filePath, const string& dataType) {
-  // Make sure that the type of stored data in the application is valid
-  if(!configParams.count("FILE_COUNT_" + dataType)){
-    throw std::runtime_error("Given dataType is unknown");
+class LReader {
+public:
+  LReader(const string& filePath, const string& dataType){
+    // Make sure that the type of stored data in the application is valid
+    if(!configParams.count("FILE_COUNT_" + dataType)){
+      throw std::runtime_error("Given dataType is unknown");
+    }
+
+    fileSize = getFileSize(filePath);
+
+    // Size of each item in the file (allows to analyze one-by-one)
+    itemSize = configParams["SERIAL_SIZE_" + dataType];
+
+    // Start from the bottom of the file
+    offsetFromEnd = 0;
+
+    matchedFile = fopen(filePath.c_str(), "r+");
   }
 
-  cout << filePath << endl;
-  cout << dataType << endl;
+  ~LReader() { fclose(matchedFile); }
 
-  fileSize = getFileSize(filePath);
+  bool hasNext() { return offsetFromEnd < fileSize; }
 
-  // Size of each item in the file (allows to analyze one-by-one)
-  itemSize = configParams["SERIAL_SIZE_" + dataType];
+  string next() {
+    if(hasNext()){
+      offsetFromEnd += itemSize;
+      return readItem(offsetFromEnd);
 
-  // Start from the bottom of the file
-  offsetFromEnd = 0;
-
-  matchedFile = fopen(filePath.c_str(), "r+");
-}
-
-LReader::~LReader() { fclose(matchedFile); }
-
-bool LReader::hasNext() {
-  return offsetFromEnd < fileSize;
-}
-
-string LReader::next() {
-  if(hasNext()){
-    offsetFromEnd += itemSize;
-    return readItem(offsetFromEnd);
-
-  }else{
-    return string();
+    }else{
+      return string();
+    }
   }
-}
 
-bool LReader::hasPrev() {
-  return offsetFromEnd >= itemSize;
-}
+  bool hasPrev() { return offsetFromEnd >= itemSize; }
 
-string LReader::prev() {
-  if(hasPrev()){
-    offsetFromEnd -= itemSize;
-    return readItem(offsetFromEnd);
+  string prev() {
+    if(hasPrev()){
+      offsetFromEnd -= itemSize;
+      return readItem(offsetFromEnd);
 
-  }else{
-    return string();
+    }else{
+      return string();
+    }
   }
-}
 
-int LReader::getItemSize() { return itemSize; }
+  int getItemSize() { return itemSize; }
 
-int LReader::getReadPtr() { return offsetFromEnd; }
+  int getReadPtr() { return offsetFromEnd; }
 
-FILE* LReader::getFilePtr() { return matchedFile; }
+  FILE* getFilePtr() { return matchedFile; }
 
-string LReader::readItem(int offsetFromEnd) {
-  char buff[itemSize];
+private:
+  FILE* matchedFile;
+  int fileSize;
+  int itemSize;
+  int offsetFromEnd;
 
-  fseek(matchedFile, -offsetFromEnd, SEEK_END);
-  fread(buff, itemSize, 1, matchedFile);
+  string readItem(int offsetFromEnd) {
+    char buff[itemSize];
 
-  buff[itemSize] = '\0'; // Cap the garbage (without this, it is appended)
-  return string(buff);
-}
+    fseek(matchedFile, -offsetFromEnd, SEEK_END);
+    fread(buff, itemSize, 1, matchedFile);
+
+    buff[itemSize] = '\0'; // Cap the garbage (without this, it is appended)
+    return string(buff);
+  }
+};
+
 
 int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs){
   LReader reader = LReader(filePath, dataType);
