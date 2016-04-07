@@ -19,7 +19,12 @@ def login_required(f):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
+    if session.get('username'):
+        return render_template('404.html',
+            message='Cannot register while you\'re logged in. (╯°□°）╯︵ ┻━┻'
+        )
+
+    elif request.method == 'POST':
         user = User(request.form['username'], request.form['password'])
 
         try:
@@ -34,7 +39,12 @@ def register():
 
 @app.route('/deactivate', methods=['GET', 'POST'])
 def deactivate():
-    if request.method == 'POST':
+    if session.get('username'):
+        return render_template('404.html',
+            message='Cannot deactivate while you\'re logged in. (╯°□°）╯︵ ┻━┻'
+        )
+
+    elif request.method == 'POST':
         user = User(request.form['username'], request.form['password'])
 
         try:
@@ -47,7 +57,12 @@ def deactivate():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
+    if session.get('username'):
+        return render_template('404.html',
+            message='Cannot log in while you\'re logged in. (╯°□°）╯︵ ┻━┻'
+        )
+
+    elif request.method == 'POST':
         user = User(request.form['username'], request.form['password'])
 
         try:
