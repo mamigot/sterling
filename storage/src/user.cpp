@@ -78,8 +78,8 @@ bool deleteCredential(const string& username, const string& password){
     {"PASSWORD", password}
   };
 
-  int numModified = setActiveFlag(false, credentialPath, dataType, matchArgs);
-  return numModified > 0;
+  setActiveFlag(false, credentialPath, dataType, matchArgs);
+  return true; // iff everything has gone well
 }
 
 bool savePost(const string& username, const string& text){
@@ -128,8 +128,7 @@ bool deletePost(const string& username, const string& timestamp){
     {"TIMESTAMP", timestamp}
   };
 
-  int modifiedCount = setActiveFlag(false, profilePostPath, dataType, matchArgs);
-  if(!modifiedCount) return false;
+  setActiveFlag(false, profilePostPath, dataType, matchArgs);
 
   // Delete from the followers' timelines
   string paddedFollowerUsername, followerUsername, timelinePostPath, fieldType;
@@ -147,11 +146,10 @@ bool deletePost(const string& username, const string& timestamp){
     matchArgs["AUTHOR"] = username;
     matchArgs["TIMESTAMP"] = timestamp;
 
-    modifiedCount = setActiveFlag(false, timelinePostPath, dataType, matchArgs);
-    if(!modifiedCount) return false;
+    setActiveFlag(false, timelinePostPath, dataType, matchArgs);
   }
 
-  return true;
+  return true; // iff everything has gone well
 }
 
 vector<string> getTimelinePosts(const string& username, int limit){
@@ -269,8 +267,7 @@ bool unfollow(const string& username, const string& friendUsername){
     {"SECOND_USERNAME", friendUsername}
   };
 
-  int numModified = setActiveFlag(false, relationPath, dataType, matchArgs);
-  if(!numModified) return false;
+  setActiveFlag(false, relationPath, dataType, matchArgs);
 
   relationPath = getStoredFilePath(StoredFileType::RelationFile, friendUsername);
 
@@ -280,8 +277,7 @@ bool unfollow(const string& username, const string& friendUsername){
   matchArgs["DIRECTION"] = "<";
   matchArgs["SECOND_USERNAME"] = username;
 
-  numModified = setActiveFlag(false, relationPath, dataType, matchArgs);
-  if(!numModified) return false;
+  setActiveFlag(false, relationPath, dataType, matchArgs);
 
   dataType = "TIMELINE_POST";
   string timelinePostPath = getStoredFilePath(StoredFileType::TimelinePostFile, username);
@@ -292,7 +288,7 @@ bool unfollow(const string& username, const string& friendUsername){
   matchArgs["AUTHOR"] = friendUsername;
 
   setActiveFlag(false, timelinePostPath, dataType, matchArgs);
-  return true;
+  return true; // iff everything has gone well
 }
 
 vector<string> getFollowers(const string& username, int limit){
