@@ -4,6 +4,8 @@
 #include <sys/socket.h>  // socket, AF_INET, SOCK_STREAM, bind, listen, accept
 #include <netinet/in.h>  // servaddr, INADDR_ANY, htons
 #include <cstring>
+#include <thread>
+#include <vector>
 #include "config.h"
 #include "protocol.h"
 
@@ -52,6 +54,7 @@ int main(int argc, char **argv) {
 
 void launchDispatcher(const int listenfd){
   int connfd;
+  vector<thread> requests;
 
   // Block until someone connects.
   for (;;) {
@@ -65,9 +68,10 @@ void launchDispatcher(const int listenfd){
     fprintf(stderr, "Connected.\n");
 
     // We have a connection. Do whatever our task is.
-    handleRequest(connfd);
-
-    // 6. Close the connection with the current client and go back for another.
-    close(connfd);
+    requests.push_back(
+      thread([connfd] { handleRequest(connfd); })
+    );
   }
+
+  for(thread& th:requests){ th.join(); }
 }

@@ -129,12 +129,15 @@ void sendPacket(const int connfd, const string& content, const int buffSize);
 
 
 void handleRequest(const int connfd){
+  cerr << "Responding to request." << endl;
+
   char data[BUFFSIZE];
   TransportBuffer buff = {data, BUFFSIZE};
 
   ServerResponse resp = parseRequest(connfd, std::ref(buff));
   respond(connfd, std::ref(resp), std::ref(buff));
 
+  close(connfd);
   cerr << "Finished." << endl;
 }
 
