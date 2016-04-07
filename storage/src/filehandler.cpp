@@ -1,15 +1,37 @@
 #include <sstream>
 #include <iostream> // used only for debugging
 #include <stdexcept>
+#include <mutex>
 #include "serializers.h"
 #include "utils.h"
 #include "filehandler.h"
 using namespace std;
 
 
+// Map file paths to their respective files' mutexes
+map<string, shared_ptr<mutex>> fileMutexes = {};
+mutex fileMutexesAccess;
+
+// Get a pointer to a mutex corresponding to a given file path
+// Ex.:
+//  auto mut = getFileMutex(someFilePath);
+//  unique_lock<mutex> lck(*mut); // how to use it
+shared_ptr<mutex> getFileMutex(const string& filePath){
+  unique_lock<mutex> lock(fileMutexesAccess);
+
+  if(fileMutexes.count(filePath)){
+    return fileMutexes[filePath];
+
+  }else{
+    shared_ptr<mutex> mut(new mutex());
+    fileMutexes.insert(std::make_pair(filePath, mut));
+    return fileMutexes[filePath];
+  }
+}
+
 class LReader {
 public:
-  LReader(const string& filePath, const string& dataType){
+  LReader(const string& filePath, const string& dataType) : filePath(filePath){
     // Make sure that the type of stored data in the application is valid
     if(!configParams.count("FILE_COUNT_" + dataType)){
       throw std::runtime_error("Given dataType is unknown");
@@ -59,6 +81,7 @@ public:
   FILE* getFilePtr() { return matchedFile; }
 
 private:
+  const string& filePath;
   FILE* matchedFile;
   int fileSize;
   int itemSize;
@@ -67,8 +90,15 @@ private:
   string readItem(int offsetFromEnd) {
     char buff[itemSize];
 
-    fseek(matchedFile, -offsetFromEnd, SEEK_END);
-    fread(buff, itemSize, 1, matchedFile);
+    // Only one thread shall access the file at a given point in time
+    auto mut = getFileMutex(filePath);
+
+    {
+      unique_lock<mutex> lck(*mut);
+
+      fseek(matchedFile, -offsetFromEnd, SEEK_END);
+      fread(buff, itemSize, 1, matchedFile);
+    }
 
     buff[itemSize] = '\0'; // Cap the garbage (without this, it is appended)
     return string(buff);
@@ -134,9 +164,16 @@ int setActiveFlag(bool active, const string& filePath, string& dataType, map<str
       auto filePtr = reader.getFilePtr();
       auto currReadPtr = reader.getReadPtr();
 
-      fseek(filePtr, -currReadPtr, SEEK_END);
-      fwrite(&activeFlag, 1, 1, filePtr);
-      fseek(filePtr, -currReadPtr, SEEK_END);
+      // This entails access of a shared resource, however, so use a lock.
+      auto mut = getFileMutex(filePath);
+
+      {
+        unique_lock<mutex> lck(*mut);
+
+        fseek(filePtr, -currReadPtr, SEEK_END);
+        fwrite(&activeFlag, 1, 1, filePtr);
+        fseek(filePtr, -currReadPtr, SEEK_END);
+      }
 
       numModified++;
     }
