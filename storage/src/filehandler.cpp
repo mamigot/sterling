@@ -43,13 +43,12 @@ public:
     // Start from the bottom of the file
     offsetFromEnd = 0;
 
-    // Whether the following requires locking the data file depends on the
-    // architecture of the system on which this is being run (do it to be safe)
+    matchedFile = fopen(filePath.c_str(), "r+");
+
     {
       auto mut = getDataFileMutex(filePath);
       unique_lock<mutex> lck(*mut);
 
-      matchedFile = fopen(filePath.c_str(), "r+");
       fileSize = getFileSize(filePath);
     }
   }
