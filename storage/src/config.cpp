@@ -62,8 +62,8 @@ void setConfigParams(void){
 
 void setStorageFilesPath(void){
   // Get env. variable to path of user data files
-  char* path = getenv("STORAGE_FILES_PATH");
-  if(path == NULL || strlen(path) == 0)
+  string path = string(getenv("STORAGE_FILES_PATH"));
+  if(!path.length())
 		throw std::runtime_error("STORAGE_FILES_PATH is not set!");
 
 	// Check if the provided directory is valid
