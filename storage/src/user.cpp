@@ -54,7 +54,7 @@ bool saveCredential(const string& username, const string& password){
     Credential credential = {Active::Yes, username, password};
     string serialized = serializeCredential(credential);
 
-    appendToFile(credentialPath, serialized);
+    appendToDataFile(credentialPath, serialized);
     return true;
   }
 
@@ -94,7 +94,7 @@ bool savePost(const string& username, const string& text){
 
   ProfilePost profilePost = {Active::Yes, username, postTimestamp, text};
   string serialized = serializeProfilePost(profilePost);
-  appendToFile(profilePostPath, serialized);
+  appendToDataFile(profilePostPath, serialized);
 
   // Record to each follower's timeline file
   string paddedFollowerUsername, followerUsername, timelinePostPath;
@@ -109,7 +109,7 @@ bool savePost(const string& username, const string& text){
     // Create the timeline post and save it
     TimelinePost timelinePost = {Active::Yes, followerUsername, username, postTimestamp, text};
     serialized = serializeTimelinePost(timelinePost);
-    appendToFile(timelinePostPath, serialized);
+    appendToDataFile(timelinePostPath, serialized);
   }
 
   return true;
@@ -222,7 +222,7 @@ bool follow(const string& username, const string& friendUsername){
       Relation relation = {Active::Yes, username, '>', friendUsername};
       string serialized = serializeRelation(relation);
 
-      appendToFile(relationPath, serialized);
+      appendToDataFile(relationPath, serialized);
     }
   }
 
@@ -245,7 +245,7 @@ bool follow(const string& username, const string& friendUsername){
       Relation relation = {Active::Yes, friendUsername, '<', username};
       string serialized = serializeRelation(relation);
 
-      appendToFile(relationPath, serialized);
+      appendToDataFile(relationPath, serialized);
     }
   }
 
