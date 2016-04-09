@@ -22,34 +22,19 @@ string getTimeNow(void){
   return strm.str();
 }
 
-bool isValidPath(const char* path){
+bool isValidPath(const string& filePath){
   // True if the path is valid (whether to a directory or a file)
+  // http://stackoverflow.com/a/18101042/2708484
   struct stat info;
-
-  if(stat(path, &info) != 0){
-    return false;
-  }
-  return true;
+  return stat(filePath.c_str(), &info) == 0;
 }
 
-bool isValidPath(const string& path){
-  return isValidPath(path.c_str());
-}
-
-unsigned int getFileSize(const string& path){
+unsigned int getFileSize(const string& filePath){
   // Get the size of a file
-  if(!isValidPath(path)){
+  if(!isValidPath(filePath)){
     throw std::runtime_error("Given path is invalid.");
   }
 
-  ifstream in(path, std::ifstream::ate | std::ifstream::binary);
+  ifstream in(filePath, std::ifstream::ate | std::ifstream::binary);
   return in.tellg();
-}
-
-void appendToFile(const string& path, const string& content){
-  // Simple append
-  ofstream outfile;
-
-  outfile.open(path, ios_base::app);
-  outfile << content;
 }

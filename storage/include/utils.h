@@ -11,15 +11,9 @@ bool startswith(const string& str, const string& match);
 string getTimeNow(void);
 
 // True if the path points to a file or a dir, false otherwise
-// http://stackoverflow.com/a/18101042/2708484
-bool isValidPath(const char* path);
+bool isValidPath(const string& filePath);
 
-// See "bool isValidPath(const char* path)"
-bool isValidPath(const string& path);
-
-unsigned int getFileSize(const string& path);
-
-void appendToFile(const string& path, const string& content);
+unsigned int getFileSize(const string& filePath);
 
 
 #endif
