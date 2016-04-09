@@ -8,6 +8,8 @@
 using namespace std;
 
 
+void appendToDataFile(const string& filePath, const string& content);
+
 // Iterates through the file backwards and returns an offset (in bytes) of the
 // first matching entry
 int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs);

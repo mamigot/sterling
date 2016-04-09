@@ -1,5 +1,5 @@
 #include <sstream>
-#include <iostream> // used only for debugging
+#include <fstream>
 #include <stdexcept>
 #include <mutex>
 #include "serializers.h"
@@ -14,10 +14,10 @@ mutex fileMutexesAccess;
 
 // Get a pointer to a mutex corresponding to a given file path
 // Ex.:
-//  auto mut = getFileMutex(someFilePath);
+//  auto mut = getDataFileMutex(someFilePath);
 //  unique_lock<mutex> lck(*mut); // how to use it
-shared_ptr<mutex> getFileMutex(const string& filePath){
-  unique_lock<mutex> lock(fileMutexesAccess);
+shared_ptr<mutex> getDataFileMutex(const string& filePath){
+  unique_lock<mutex> lck(fileMutexesAccess);
 
   if(fileMutexes.count(filePath)){
     return fileMutexes[filePath];
@@ -37,15 +37,21 @@ public:
       throw std::runtime_error("Given dataType is unknown");
     }
 
-    fileSize = getFileSize(filePath);
-
     // Size of each item in the file (allows to analyze one-by-one)
     itemSize = configParams["SERIAL_SIZE_" + dataType];
 
     // Start from the bottom of the file
     offsetFromEnd = 0;
 
-    matchedFile = fopen(filePath.c_str(), "r+");
+    // Whether the following requires locking the data file depends on the
+    // architecture of the system on which this is being run (do it to be safe)
+    {
+      auto mut = getDataFileMutex(filePath);
+      unique_lock<mutex> lck(*mut);
+
+      matchedFile = fopen(filePath.c_str(), "r+");
+      fileSize = getFileSize(filePath);
+    }
   }
 
   ~LReader() { fclose(matchedFile); }
@@ -90,10 +96,9 @@ private:
   string readItem(int offsetFromEnd) {
     char buff[itemSize];
 
-    // Only one thread shall access the file at a given point in time
-    auto mut = getFileMutex(filePath);
-
     {
+      // Only one thread shall access the file at a given point in time
+      auto mut = getDataFileMutex(filePath);
       unique_lock<mutex> lck(*mut);
 
       fseek(matchedFile, -offsetFromEnd, SEEK_END);
@@ -105,6 +110,16 @@ private:
   }
 };
 
+void appendToDataFile(const string& filePath, const string& content){
+  ofstream outfile;
+
+  // This entails access of a shared resource, so use a lock.
+  auto mut = getDataFileMutex(filePath);
+  unique_lock<mutex> lck(*mut);
+
+  outfile.open(filePath, ios_base::app);
+  outfile << content;
+}
 
 int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs){
   LReader reader = LReader(filePath, dataType);
@@ -164,10 +179,9 @@ int setActiveFlag(bool active, const string& filePath, string& dataType, map<str
       auto filePtr = reader.getFilePtr();
       auto currReadPtr = reader.getReadPtr();
 
-      // This entails access of a shared resource, however, so use a lock.
-      auto mut = getFileMutex(filePath);
-
       {
+        // This entails access of a shared resource, so use a lock.
+        auto mut = getDataFileMutex(filePath);
         unique_lock<mutex> lck(*mut);
 
         fseek(filePtr, -currReadPtr, SEEK_END);
