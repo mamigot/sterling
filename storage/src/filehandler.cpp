@@ -19,14 +19,12 @@ mutex fileMutexesAccess;
 shared_ptr<mutex> getDataFileMutex(const string& filePath){
   unique_lock<mutex> lck(fileMutexesAccess);
 
-  if(fileMutexes.count(filePath)){
-    return fileMutexes[filePath];
-
-  }else{
+  if(!fileMutexes.count(filePath)){
     shared_ptr<mutex> mut(new mutex());
     fileMutexes.insert(std::make_pair(filePath, mut));
-    return fileMutexes[filePath];
   }
+
+  return fileMutexes[filePath];
 }
 
 class LReader {
