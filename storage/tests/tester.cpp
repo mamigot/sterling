@@ -2,6 +2,8 @@
 #include <sstream>
 #include <thread>
 #include <cassert>
+#include <chrono>
+#include <ctime>
 #include <stdlib.h>
 #include "config.h"
 #include "user.h"
@@ -9,9 +11,7 @@
 using namespace std;
 
 string randomString(int length){
-  static const char allowed[] = // http://www.cplusplus.com/forum/windows/88843/
-    "0123456789"
-    "!@#$^&*"
+  static const char allowed[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz ";
 
@@ -22,33 +22,29 @@ string randomString(int length){
   return random.str();
 }
 
-bool testConcurrency(){
-  // Determine whether threads deadlock / are able to execute successfully
-  // when concurrently accessing a data-file.
-
-  // Save many posts for the same user
-  string text, username = "bobbyTables";
-  int numPosts = 500;
-
-  cerr << "Saving " << numPosts << " posts..." << endl;
-
-  for(int i = 0; i < numPosts; i++)
-    savePost(username, randomString(50));
-
-  // Access them through many threads
-  int numThreads = 1000;
+bool testCredentials(){
+  int numThreads = 1500;
   vector<thread> testers;
 
-  cerr << "Accessing them through " << numThreads << " threads..." << endl;
+  cerr << "START:\t credentials: " << numThreads << " threads." << endl;
 
-  for(int i = 0; i < numThreads; i++)
+  std::chrono::time_point<std::chrono::system_clock> start, end;
+  start = std::chrono::system_clock::now();
+
+  for(int i = 0; i < numThreads; i++){
+    string username = randomString(10), password = randomString(10);
+
     testers.push_back(
-      thread([&] { getProfilePosts(username, -1); })
+      thread([&] { saveCredential(username, password); })
     );
+  }
 
   for(auto& th:testers){ th.join(); }
+  end = std::chrono::system_clock::now();
 
-  // Successful execution implies that no deadlock took place
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  cerr << "END:\t credentials: " << elapsed_seconds.count() << " seconds." << endl;
+
   return true;
 }
 
@@ -57,7 +53,7 @@ int main(){
 
   // Register test functions
   vector<bool (*)()> testFunctions;
-  testFunctions.push_back(testConcurrency);
+  testFunctions.push_back(testCredentials);
 
   // Execute each test function and abort if there's a failure
   for(auto func:testFunctions){ assert(func()); }
