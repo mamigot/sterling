@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include "config.h"
 #include "serializers.h"
 using namespace std;
 
@@ -8,16 +9,16 @@ using namespace std;
 // The serializers follow the formats that are specified by configParams
 string serializeCredential(Credential& credential){
   string active = credential.active == Active::Yes ? "1" : "0";
-  string username = pad(credential.username, configParams["FIELD_SIZE_USERNAME"]);
-  string password = pad(credential.password, configParams["FIELD_SIZE_PASSWORD"]);
+  string username = pad(credential.username, getConfigParam("FIELD_SIZE_USERNAME"));
+  string password = pad(credential.password, getConfigParam("FIELD_SIZE_PASSWORD"));
 
   return active + username + password;
 }
 
 string serializeRelation(Relation& relation){
   string active = relation.active == Active::Yes ? "1" : "0";
-  string firstUsername = pad(relation.firstUsername, configParams["FIELD_SIZE_USERNAME"]);
-  string secondUsername = pad(relation.secondUsername, configParams["FIELD_SIZE_USERNAME"]);
+  string firstUsername = pad(relation.firstUsername, getConfigParam("FIELD_SIZE_USERNAME"));
+  string secondUsername = pad(relation.secondUsername, getConfigParam("FIELD_SIZE_USERNAME"));
 
   return active + firstUsername + relation.direction + secondUsername;
 }
@@ -30,8 +31,8 @@ string serializeProfilePost(ProfilePost& profilePost){
   }
 
   string active = profilePost.active == Active::Yes ? "1" : "0";
-  string username = pad(profilePost.username, configParams["FIELD_SIZE_USERNAME"]);
-  string text = pad(profilePost.text, configParams["FIELD_SIZE_TEXT"]);
+  string username = pad(profilePost.username, getConfigParam("FIELD_SIZE_USERNAME"));
+  string text = pad(profilePost.text, getConfigParam("FIELD_SIZE_TEXT"));
 
   return active + username + profilePost.timestamp + text;
 }
@@ -44,16 +45,16 @@ string serializeTimelinePost(TimelinePost& timelinePost){
   }
 
   string active = timelinePost.active == Active::Yes ? "1" : "0";
-  string username = pad(timelinePost.username, configParams["FIELD_SIZE_USERNAME"]);
-  string author = pad(timelinePost.author, configParams["FIELD_SIZE_USERNAME"]);
-  string text = pad(timelinePost.text, configParams["FIELD_SIZE_TEXT"]);
+  string username = pad(timelinePost.username, getConfigParam("FIELD_SIZE_USERNAME"));
+  string author = pad(timelinePost.author, getConfigParam("FIELD_SIZE_USERNAME"));
+  string text = pad(timelinePost.text, getConfigParam("FIELD_SIZE_TEXT"));
 
   return active + username + author + timelinePost.timestamp + text;
 }
 
 bool matchesSerialized(const string& serialized, string& dataType, map<string, string> matchArgs){
   // Determine whether the provided parameters match the serialized item
-  if(!configParams.count("FILE_COUNT_" + dataType)){
+  if(getConfigParam("FILE_COUNT_" + dataType) == -1){
     throw std::runtime_error("Given dataType is unknown");
   }
 
@@ -69,13 +70,13 @@ bool matchesSerialized(const string& serialized, string& dataType, map<string, s
        !fieldType.compare("AUTHOR") || \
        !fieldType.compare("FIRST_USERNAME") || \
        !fieldType.compare("SECOND_USERNAME")){
-      potentialMatch = pad(potentialMatch, configParams["FIELD_SIZE_USERNAME"]);
+      potentialMatch = pad(potentialMatch, getConfigParam("FIELD_SIZE_USERNAME"));
 
     }else if(!fieldType.compare("PASSWORD")){
-      potentialMatch = pad(potentialMatch, configParams["FIELD_SIZE_PASSWORD"]);
+      potentialMatch = pad(potentialMatch, getConfigParam("FIELD_SIZE_PASSWORD"));
 
     }else if(!fieldType.compare("TEXT")){
-      potentialMatch = pad(potentialMatch, configParams["FIELD_SIZE_TEXT"]);
+      potentialMatch = pad(potentialMatch, getConfigParam("FIELD_SIZE_TEXT"));
     }
 
     if(ser.compare(potentialMatch)){
@@ -115,8 +116,8 @@ string extractField(const string& serialized, string& dataType, string& fieldTyp
 
   string wanted = "SERIAL_" + dataType + "_" + fieldType;
 
-  unsigned int startIdx = configParams[wanted + "_START"];
-  unsigned int endIdx = configParams[wanted + "_END"];
+  unsigned int startIdx = getConfigParam(wanted + "_START");
+  unsigned int endIdx = getConfigParam(wanted + "_END");
 
   string match = serialized.substr(startIdx, (endIdx - startIdx));
   if(match.empty()){
