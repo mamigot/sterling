@@ -3,23 +3,25 @@
 #include <sstream>
 #include <stdexcept>
 #include <cstring>
+#include <mutex>
 #include "filehandler.h"
 #include "utils.h"
 #include "config.h"
 using namespace std;
 
 
-string STORAGE_FILES_PATH;
+const string STORAGE_FILES_PATH(getenv("STORAGE_FILES_PATH")); // TODO: validate in start.sh
 
-map<string, int> configParams;
-
-map<StoredFileType, string> storedFileTypes = {
+const map<StoredFileType, string> storedFileTypes = {
   {StoredFileType::CredentialFile, "CREDENTIAL"},
   {StoredFileType::RelationFile, "RELATION"},
   {StoredFileType::ProfilePostFile, "PROFILE_POST"},
   {StoredFileType::TimelinePostFile, "TIMELINE_POST"}
 };
 
+// Configuration parameters/constants of the application
+map<string, int> configParams;
+mutex configParamsMut;
 
 void setConfigParams(void);
 void setStorageFilesPath(void);
@@ -29,7 +31,7 @@ string getFileName(StoredFileType storedFileType, unsigned int fileNum);
 
 void configServer(void){
   setConfigParams();
-  setStorageFilesPath();
+  //setStorageFilesPath();
   initiateStorage();
 }
 
@@ -42,6 +44,7 @@ void setConfigParams(void){
   }
 
   ifstream infile(configPath);
+  unique_lock<mutex> lck(configParamsMut);
 
   string line;
   while(std::getline(infile, line)){
@@ -60,6 +63,17 @@ void setConfigParams(void){
   }
 }
 
+int getConfigParam(const string& param){
+  try{
+    unique_lock<mutex> lck(configParamsMut);
+    return configParams.at(param);
+
+  }catch(const std::out_of_range& e) {
+    return -1;
+  }
+}
+
+/*
 void setStorageFilesPath(void){
   // Get env. variable to path of user data files
   string path = string(getenv("STORAGE_FILES_PATH"));
@@ -73,6 +87,7 @@ void setStorageFilesPath(void){
     throw std::runtime_error("STORAGE_FILES_PATH does not contain a valid path");
   }
 }
+*/
 
 void initiateStorage(void){
   // Assumes that setStorageFilesPath() setConfigParams() have been called
@@ -99,7 +114,9 @@ void initiateStorage(void){
 
 string getStoredFilePath(StoredFileType storedFileType, const string& username){
   // "Hash" the username to a number within the relevant file's limits
-  unsigned int maxFileNum = configParams["FILE_COUNT_" + storedFileTypes[storedFileType]];
+  string param = "FILE_COUNT_" + storedFileTypes.at(storedFileType);
+  unsigned int maxFileNum = getConfigParam(param);
+
   if(!maxFileNum){
     throw std::runtime_error("maxFileNum is zero. Likely that configServer() has not been called.");
   }
@@ -115,5 +132,5 @@ string getStoredFilePath(StoredFileType storedFileType, const string& username){
 
 string getFileName(StoredFileType storedFileType, unsigned int fileNum){
   // Matches the format set by initiateStorage()
-  return storedFileTypes[storedFileType] + "_" + to_string(fileNum) + ".txt";
+  return storedFileTypes.at(storedFileType) + "_" + to_string(fileNum) + ".txt";
 }

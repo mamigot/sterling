@@ -54,13 +54,10 @@ enum StoredFileType{
 };
 
 // Absolute path to the user data files of the application
-extern string STORAGE_FILES_PATH;
+extern const string STORAGE_FILES_PATH;
 
 // Maps StoredFileType enum to string version of filename
-extern map<StoredFileType, string> storedFileTypes;
-
-// Configuration parameters/constants of the application
-extern map<string, int> configParams;
+extern const map<StoredFileType, string> storedFileTypes;
 
 // Before each session: creates the user data files of the application if they
 // don't exist and makes other relevant params available
@@ -70,5 +67,6 @@ void configServer(void);
 // username of the user
 string getStoredFilePath(StoredFileType storedFileType, const string& username);
 
+int getConfigParam(const string& param); // TODO: rename to getParamLength
 
 #endif
