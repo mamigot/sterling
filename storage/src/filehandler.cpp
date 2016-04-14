@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <mutex>
+#include "config.h"
 #include "serializers.h"
 #include "utils.h"
 #include "filehandler.h"
@@ -31,12 +32,12 @@ class LReader {
 public:
   LReader(const string& filePath, const string& dataType) : filePath(filePath){
     // Make sure that the type of stored data in the application is valid
-    if(!configParams.count("FILE_COUNT_" + dataType)){
+    if(getConfigParam("FILE_COUNT_" + dataType) == -1){
       throw std::runtime_error("Given dataType is unknown");
     }
 
     // Size of each item in the file (allows to analyze one-by-one)
-    itemSize = configParams["SERIAL_SIZE_" + dataType];
+    itemSize = getConfigParam("SERIAL_SIZE_" + dataType);
 
     // Start from the bottom of the file
     offsetFromEnd = 0;
