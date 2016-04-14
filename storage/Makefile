@@ -29,8 +29,11 @@ clean:
 	@echo " $(RM) -r $(BUILDDIR)/*.o $(TARGET)"; $(RM) -r $(TARGET) $(BUILDDIR)/*.o
 	@echo " $(RM) -r bin/*"; $(RM) -r bin/*
 
-# Tests (unused for now unfortunately)
+# Exclude runserver.cpp because that has its own main function (symbols collide)
+TESTING_SOURCES := $(filter-out src/runserver.cpp, $(SOURCES))
 tester:
-	$(CC) $(CFLAGS) test/tester.cpp $(INC) $(LIB) -o bin/tester
+	@echo " Testing...";
+	@echo " $(CC) $(CFLAGS) $(TESTING_SOURCES) tests/tester.cpp $(INC) $(LIB) -o bin/tester"; \
+	$(CC) $(CFLAGS) $(TESTING_SOURCES) tests/tester.cpp $(INC) $(LIB) -o bin/tester
 
 .PHONY: clean
