@@ -1,3 +1,6 @@
+#include <iostream> // debuggin'
+#include <chrono>
+#include <thread>
 #include <sstream>
 #include <fstream>
 #include <stdexcept>
@@ -18,38 +21,31 @@ mutex fileMutexesAccess;
 //  auto mut = getDataFileMutex(someFilePath);
 //  unique_lock<mutex> lck(*mut); // how to use it
 shared_ptr<mutex> getDataFileMutex(const string& filePath){
-  unique_lock<mutex> lck(fileMutexesAccess);
-
   if(!fileMutexes.count(filePath)){
+    unique_lock<mutex> lock(fileMutexesAccess);
+
     shared_ptr<mutex> mut(new mutex());
     fileMutexes.insert(std::make_pair(filePath, mut));
   }
 
-  return fileMutexes[filePath];
+  return fileMutexes.at(filePath);
 }
 
 class LReader {
 public:
   LReader(const string& filePath, const string& dataType) : filePath(filePath){
     // Make sure that the type of stored data in the application is valid
-    if(getConfigParam("FILE_COUNT_" + dataType) == -1){
+    if(configParams.at("FILE_COUNT_" + dataType) == -1)
       throw std::runtime_error("Given dataType is unknown");
-    }
 
     // Size of each item in the file (allows to analyze one-by-one)
-    itemSize = getConfigParam("SERIAL_SIZE_" + dataType);
+    itemSize = configParams.at("SERIAL_SIZE_" + dataType);
 
     // Start from the bottom of the file
     offsetFromEnd = 0;
 
-    matchedFile = fopen(filePath.c_str(), "r+");
-
-    {
-      auto mut = getDataFileMutex(filePath);
-      unique_lock<mutex> lck(*mut);
-
-      fileSize = getFileSize(filePath);
-    }
+    matchedFile = fopen(filePath.c_str(), "rb");
+    fileSize = getFileSize(filePath);
   }
 
   ~LReader() { fclose(matchedFile); }
@@ -94,14 +90,8 @@ private:
   string readItem(int offsetFromEnd) {
     char buff[itemSize];
 
-    {
-      // Only one thread shall access the file at a given point in time
-      auto mut = getDataFileMutex(filePath);
-      unique_lock<mutex> lck(*mut);
-
-      fseek(matchedFile, -offsetFromEnd, SEEK_END);
-      fread(buff, itemSize, 1, matchedFile);
-    }
+    fseek(matchedFile, -offsetFromEnd, SEEK_END);
+    fread(buff, itemSize, 1, matchedFile);
 
     buff[itemSize] = '\0'; // Cap the garbage (without this, it is appended)
     return string(buff);
@@ -119,7 +109,10 @@ void appendToDataFile(const string& filePath, const string& content){
   outfile << content;
 }
 
-int itemMatch(const string& filePath, string& dataType, map<string, string> matchArgs){
+int itemMatch(const string& filePath, string& dataType, const map<string, string> matchArgs){
+  auto mut = getDataFileMutex(filePath);
+  unique_lock<mutex> lck(*mut);
+
   LReader reader = LReader(filePath, dataType);
 
   while(reader.hasNext()){
@@ -136,6 +129,9 @@ int itemMatch(const string& filePath, string& dataType, map<string, string> matc
 vector<string> itemMatchSweep(const string& filePath, string& dataType, map<string, string> matchArgs, int limit){
   vector<string> allMatches;
   if(!limit) return allMatches;
+
+  auto mut = getDataFileMutex(filePath);
+  unique_lock<mutex> lck(*mut);
 
   LReader reader = LReader(filePath, dataType);
 
@@ -163,6 +159,9 @@ int setActiveFlag(bool active, const string& filePath, string& dataType, map<str
   char activeFlag = active ? '1' : '0';
   unsigned int numModified = 0;
 
+  auto mut = getDataFileMutex(filePath);
+  unique_lock<mutex> lck(*mut);
+
   LReader reader = LReader(filePath, dataType);
 
   while(reader.hasNext()){
@@ -177,15 +176,9 @@ int setActiveFlag(bool active, const string& filePath, string& dataType, map<str
       auto filePtr = reader.getFilePtr();
       auto currReadPtr = reader.getReadPtr();
 
-      {
-        // This entails access of a shared resource, so use a lock.
-        auto mut = getDataFileMutex(filePath);
-        unique_lock<mutex> lck(*mut);
-
-        fseek(filePtr, -currReadPtr, SEEK_END);
-        fwrite(&activeFlag, 1, 1, filePtr);
-        fseek(filePtr, -currReadPtr, SEEK_END);
-      }
+      fseek(filePtr, -currReadPtr, SEEK_END);
+      fwrite(&activeFlag, 1, 1, filePtr);
+      fseek(filePtr, -currReadPtr, SEEK_END);
 
       numModified++;
     }
