@@ -10,7 +10,7 @@
 using namespace std;
 
 
-const string STORAGE_FILES_PATH(getenv("STORAGE_FILES_PATH")); // TODO: validate in start.sh
+const string STORAGE_FILES_PATH(getenv("STORAGE_FILES_PATH"));
 
 const map<StoredFileType, string> storedFileTypes = {
   {StoredFileType::CredentialFile, "CREDENTIAL"},
@@ -19,17 +19,15 @@ const map<StoredFileType, string> storedFileTypes = {
   {StoredFileType::TimelinePostFile, "TIMELINE_POST"}
 };
 
+// Only modify the configParams after locking the mutex
 map<string, int> configParams;
-//mutex configParamsMut;
+mutex configParamsAccess;
 
 void setConfigParams();
-//void setStorageFilesPath();
 void initiateStorage();
-string getFileName(StoredFileType storedFileType, unsigned int fileNum);
 
 void configServer(){
   setConfigParams();
-  //setStorageFilesPath();
   initiateStorage();
 }
 
@@ -42,8 +40,7 @@ void setConfigParams(){
   }
 
   ifstream infile(configPath);
-  //map<string, int> tempConfigParams;
-  //unique_lock<mutex> lck(configParamsMut);
+  unique_lock<mutex> lck(configParamsAccess);
 
   string line;
   while(std::getline(infile, line)){
@@ -60,38 +57,7 @@ void setConfigParams(){
       configParams[constantKey] = constantValue;
     }
   }
-
-  //configParams(tempConfigParams);
 }
-
-
-/*
-int getConfigParam(const string& param){
-  try{
-    unique_lock<mutex> lck(configParamsMut);
-    return configParams.at(param);
-
-  }catch(const std::out_of_range& e) {
-    return -1;
-  }
-}
-*/
-
-/*
-void setStorageFilesPath(void){
-  // Get env. variable to path of user data files
-  string path = string(getenv("STORAGE_FILES_PATH"));
-  if(!path.length())
-		throw std::runtime_error("STORAGE_FILES_PATH is not set!");
-
-	// Check if the provided directory is valid
-  if(isValidPath(path)){
-    STORAGE_FILES_PATH = string(path);
-  }else{
-    throw std::runtime_error("STORAGE_FILES_PATH does not contain a valid path");
-  }
-}
-*/
 
 void initiateStorage(void){
   // Assumes that setStorageFilesPath() setConfigParams() have been called
@@ -130,11 +96,10 @@ string getStoredFilePath(StoredFileType storedFileType, const string& username){
     numericUsername += username[i];
   }
 
-  string fileName = getFileName(storedFileType, (numericUsername % maxFileNum));
-  return STORAGE_FILES_PATH + '/' + fileName;
-}
+  unsigned int fileNum = numericUsername % maxFileNum;
 
-string getFileName(StoredFileType storedFileType, unsigned int fileNum){
   // Matches the format set by initiateStorage()
-  return storedFileTypes.at(storedFileType) + "_" + to_string(fileNum) + ".txt";
+  string fileName = storedFileTypes.at(storedFileType) + "_" + to_string(fileNum) + ".txt";
+
+  return STORAGE_FILES_PATH + '/' + fileName;
 }
