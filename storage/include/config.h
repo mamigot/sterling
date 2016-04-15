@@ -59,9 +59,12 @@ extern const string STORAGE_FILES_PATH;
 // Maps StoredFileType enum to string version of filename
 extern const map<StoredFileType, string> storedFileTypes;
 
+// Configuration parameters/constants of the application
+extern map<string, int> configParams;
+
 // Before each session: creates the user data files of the application if they
 // don't exist and makes other relevant params available
-void configServer(void);
+void configServer();
 
 // Get the absolute path to a stored file, provided its type as well as the
 // username of the user

@@ -19,23 +19,21 @@ const map<StoredFileType, string> storedFileTypes = {
   {StoredFileType::TimelinePostFile, "TIMELINE_POST"}
 };
 
-// Configuration parameters/constants of the application
 map<string, int> configParams;
-mutex configParamsMut;
+//mutex configParamsMut;
 
-void setConfigParams(void);
-void setStorageFilesPath(void);
-void initiateStorage(void);
+void setConfigParams();
+//void setStorageFilesPath();
+void initiateStorage();
 string getFileName(StoredFileType storedFileType, unsigned int fileNum);
 
-
-void configServer(void){
+void configServer(){
   setConfigParams();
   //setStorageFilesPath();
   initiateStorage();
 }
 
-void setConfigParams(void){
+void setConfigParams(){
   // Get env. variable to path of txt file with configuration params
   // (these are constants that are used throughout for serialization, etc.)
   char* configPath = getenv("CONFIG_PATH");
@@ -44,7 +42,8 @@ void setConfigParams(void){
   }
 
   ifstream infile(configPath);
-  unique_lock<mutex> lck(configParamsMut);
+  //map<string, int> tempConfigParams;
+  //unique_lock<mutex> lck(configParamsMut);
 
   string line;
   while(std::getline(infile, line)){
@@ -61,8 +60,12 @@ void setConfigParams(void){
       configParams[constantKey] = constantValue;
     }
   }
+
+  //configParams(tempConfigParams);
 }
 
+
+/*
 int getConfigParam(const string& param){
   try{
     unique_lock<mutex> lck(configParamsMut);
@@ -72,6 +75,7 @@ int getConfigParam(const string& param){
     return -1;
   }
 }
+*/
 
 /*
 void setStorageFilesPath(void){
@@ -115,7 +119,7 @@ void initiateStorage(void){
 string getStoredFilePath(StoredFileType storedFileType, const string& username){
   // "Hash" the username to a number within the relevant file's limits
   string param = "FILE_COUNT_" + storedFileTypes.at(storedFileType);
-  unsigned int maxFileNum = getConfigParam(param);
+  unsigned int maxFileNum = configParams.at(param);
 
   if(!maxFileNum){
     throw std::runtime_error("maxFileNum is zero. Likely that configServer() has not been called.");
