@@ -42,10 +42,6 @@ class TestDataIntegrity(unittest.TestCase):
                     print('...testing %s' % data_file)
                     self.assertEqual(len(content) % item_size, 0)
 
-                    if '1~~~~~~~~~~HFDJ' in content:
-                        print(data_file)
-                        return
-
 
 if __name__ == '__main__':
     unittest.main()
