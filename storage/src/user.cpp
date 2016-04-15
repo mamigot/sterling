@@ -42,7 +42,7 @@ bool saveCredential(const string& username, const string& password){
   string credentialPath = getStoredFilePath(StoredFileType::CredentialFile, username);
   string dataType = "CREDENTIAL";
 
-  map<string, string> matchArgs = {
+  const map<string, string> matchArgs = {
     {"USERNAME", username},
     {"PASSWORD", password}
   };
