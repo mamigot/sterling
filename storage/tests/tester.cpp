@@ -23,8 +23,10 @@ string randomString(int length){
 }
 
 bool testCredentials(){
-  int numThreads = 1500;
+  int numThreads = 100;
   vector<thread> testers;
+
+  // std::this_thread::sleep_for(std::chrono::seconds(1));
 
   cerr << "START:\t credentials: " << numThreads << " threads." << endl;
 
@@ -48,12 +50,39 @@ bool testCredentials(){
   return true;
 }
 
+bool testPosts(){
+  int numThreads = 100;
+  vector<thread> testers;
+
+  cerr << "START:\t posts: " << numThreads << " threads." << endl;
+
+  std::chrono::time_point<std::chrono::system_clock> start, end;
+  start = std::chrono::system_clock::now();
+
+  for(int i = 0; i < numThreads; i++){
+    string username = randomString(10), text = randomString(20);
+
+    testers.push_back(
+      thread([&] { savePost(username, text); })
+    );
+  }
+
+  for(auto& th:testers){ th.join(); }
+  end = std::chrono::system_clock::now();
+
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  cerr << "END:\t posts: " << elapsed_seconds.count() << " seconds." << endl;
+
+  return true;
+}
+
 int main(){
   configServer();
 
   // Register test functions
   vector<bool (*)()> testFunctions;
   testFunctions.push_back(testCredentials);
+  testFunctions.push_back(testPosts);
 
   // Execute each test function and abort if there's a failure
   for(auto func:testFunctions){ assert(func()); }
