@@ -1,7 +1,7 @@
 import unittest
 import time
 import functools
-from main import config, serialization as ser
+from main import config, serializers as ser
 
 
 class TestPadding(unittest.TestCase):
