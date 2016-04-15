@@ -70,6 +70,5 @@ void configServer();
 // username of the user
 string getStoredFilePath(StoredFileType storedFileType, const string& username);
 
-int getConfigParam(const string& param); // TODO: rename to getParamLength
 
 #endif
