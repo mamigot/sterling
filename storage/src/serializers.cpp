@@ -9,16 +9,16 @@ using namespace std;
 // The serializers follow the formats that are specified by configParams
 string serializeCredential(Credential& credential){
   string active = credential.active == Active::Yes ? "1" : "0";
-  string username = pad(credential.username, getConfigParam("FIELD_SIZE_USERNAME"));
-  string password = pad(credential.password, getConfigParam("FIELD_SIZE_PASSWORD"));
+  string username = pad(credential.username, configParams.at("FIELD_SIZE_USERNAME"));
+  string password = pad(credential.password, configParams.at("FIELD_SIZE_PASSWORD"));
 
   return active + username + password;
 }
 
 string serializeRelation(Relation& relation){
   string active = relation.active == Active::Yes ? "1" : "0";
-  string firstUsername = pad(relation.firstUsername, getConfigParam("FIELD_SIZE_USERNAME"));
-  string secondUsername = pad(relation.secondUsername, getConfigParam("FIELD_SIZE_USERNAME"));
+  string firstUsername = pad(relation.firstUsername, configParams.at("FIELD_SIZE_USERNAME"));
+  string secondUsername = pad(relation.secondUsername, configParams.at("FIELD_SIZE_USERNAME"));
 
   return active + firstUsername + relation.direction + secondUsername;
 }
@@ -31,8 +31,8 @@ string serializeProfilePost(ProfilePost& profilePost){
   }
 
   string active = profilePost.active == Active::Yes ? "1" : "0";
-  string username = pad(profilePost.username, getConfigParam("FIELD_SIZE_USERNAME"));
-  string text = pad(profilePost.text, getConfigParam("FIELD_SIZE_TEXT"));
+  string username = pad(profilePost.username, configParams.at("FIELD_SIZE_USERNAME"));
+  string text = pad(profilePost.text, configParams.at("FIELD_SIZE_TEXT"));
 
   return active + username + profilePost.timestamp + text;
 }
@@ -45,18 +45,17 @@ string serializeTimelinePost(TimelinePost& timelinePost){
   }
 
   string active = timelinePost.active == Active::Yes ? "1" : "0";
-  string username = pad(timelinePost.username, getConfigParam("FIELD_SIZE_USERNAME"));
-  string author = pad(timelinePost.author, getConfigParam("FIELD_SIZE_USERNAME"));
-  string text = pad(timelinePost.text, getConfigParam("FIELD_SIZE_TEXT"));
+  string username = pad(timelinePost.username, configParams.at("FIELD_SIZE_USERNAME"));
+  string author = pad(timelinePost.author, configParams.at("FIELD_SIZE_USERNAME"));
+  string text = pad(timelinePost.text, configParams.at("FIELD_SIZE_TEXT"));
 
   return active + username + author + timelinePost.timestamp + text;
 }
 
-bool matchesSerialized(const string& serialized, string& dataType, map<string, string> matchArgs){
+bool matchesSerialized(const string& serialized, string& dataType, const map<string, string> matchArgs){
   // Determine whether the provided parameters match the serialized item
-  if(getConfigParam("FILE_COUNT_" + dataType) == -1){
+  if(!configParams.count("FILE_COUNT_" + dataType))
     throw std::runtime_error("Given dataType is unknown");
-  }
 
   string ser, fieldType, potentialMatch;
   for(auto const& x : matchArgs){
@@ -70,13 +69,13 @@ bool matchesSerialized(const string& serialized, string& dataType, map<string, s
        !fieldType.compare("AUTHOR") || \
        !fieldType.compare("FIRST_USERNAME") || \
        !fieldType.compare("SECOND_USERNAME")){
-      potentialMatch = pad(potentialMatch, getConfigParam("FIELD_SIZE_USERNAME"));
+      potentialMatch = pad(potentialMatch, configParams.at("FIELD_SIZE_USERNAME"));
 
     }else if(!fieldType.compare("PASSWORD")){
-      potentialMatch = pad(potentialMatch, getConfigParam("FIELD_SIZE_PASSWORD"));
+      potentialMatch = pad(potentialMatch, configParams.at("FIELD_SIZE_PASSWORD"));
 
     }else if(!fieldType.compare("TEXT")){
-      potentialMatch = pad(potentialMatch, getConfigParam("FIELD_SIZE_TEXT"));
+      potentialMatch = pad(potentialMatch, configParams.at("FIELD_SIZE_TEXT"));
     }
 
     if(ser.compare(potentialMatch)){
@@ -92,14 +91,11 @@ string pad(const string& value, unsigned int fieldSize){
   // the rest of the characters are fillers (padded)
   int extraCount = fieldSize - value.length();
 
-  if(extraCount < 0){
+  if(extraCount < 0)
     throw std::runtime_error("Given value exceeds specified fieldSize");
-  }
 
   stringstream padding;
-  while(extraCount--){
-    padding << fillerChar;
-  }
+  while(extraCount--){ padding << fillerChar; }
 
   return padding.str() + value;
 }
@@ -113,16 +109,14 @@ string unpad(const string& value){
 string extractField(const string& serialized, string& dataType, string& fieldType){
   // Extract start and end bounds based on the type of the data and field
   // The constants with the index information are provided by the config module
-
   string wanted = "SERIAL_" + dataType + "_" + fieldType;
 
-  unsigned int startIdx = getConfigParam(wanted + "_START");
-  unsigned int endIdx = getConfigParam(wanted + "_END");
+  unsigned int startIdx = configParams.at(wanted + "_START");
+  unsigned int endIdx = configParams.at(wanted + "_END");
 
   string match = serialized.substr(startIdx, (endIdx - startIdx));
-  if(match.empty()){
-    throw std::runtime_error("No config parameter found");
-  }
+  //cout << serialized.length() << endl;
+  if(match.empty()){ throw std::runtime_error("No config parameter found"); }
 
   return match;
 }

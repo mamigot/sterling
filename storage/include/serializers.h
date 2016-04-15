@@ -17,7 +17,7 @@ string serializeProfilePost(ProfilePost& profilePost);
 string serializeTimelinePost(TimelinePost& timelinePost);
 
 // Knowing what type of data was serialized, match it against a set of arguments
-bool matchesSerialized(const string& serialized, string& dataType, map<string, string> matchArgs);
+bool matchesSerialized(const string& serialized, string& dataType, const map<string, string> matchArgs);
 
 // Pad value with as many instances of fillerChar as fieldSize requires
 string pad(const string& value, unsigned int fieldSize);
