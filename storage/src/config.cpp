@@ -84,6 +84,8 @@ void initiateStorage(void){
 
 string getStoredFilePath(StoredFileType storedFileType, const string& username){
   // "Hash" the username to a number within the relevant file's limits
+  // and return the path of the file that corresponds to that hash
+
   string param = "FILE_COUNT_" + storedFileTypes.at(storedFileType);
   unsigned int maxFileNum = configParams.at(param);
 
