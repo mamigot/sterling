@@ -31,7 +31,7 @@ export DATASERVER_BUFFSIZE=8192
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Make all root-level modules of the app accessible
-export PATH=$PATH:$PROJECT_ROOT/main
+export PATH=$PATH:$PROJECT_ROOT:$PROJECT_ROOT/main
 
 # Application configuration variables
 export CONFIG_PATH=$PROJECT_ROOT/config.txt
