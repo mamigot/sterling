@@ -7,13 +7,12 @@
 #include <stdlib.h>
 #include "config.h"
 #include "user.h"
-#include "serializers.h"
 using namespace std;
 
 string randomString(int length){
   static const char allowed[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz ";
+    "abcdefghijklmnopqrstuvwxyz";
 
   ostringstream random;
   for(int i = 0; i < length; i++)
@@ -22,8 +21,8 @@ string randomString(int length){
   return random.str();
 }
 
-bool testCredentials(){
-  int numThreads = 100;
+bool testSaveCredential(){
+  int numThreads = 10;
   vector<thread> testers;
 
   // std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -50,8 +49,8 @@ bool testCredentials(){
   return true;
 }
 
-bool testPosts(){
-  int numThreads = 100;
+bool testSavePost(){
+  int numThreads = 10;
   vector<thread> testers;
 
   cerr << "START:\t posts: " << numThreads << " threads." << endl;
@@ -81,8 +80,8 @@ int main(){
 
   // Register test functions
   vector<bool (*)()> testFunctions;
-  testFunctions.push_back(testCredentials);
-  testFunctions.push_back(testPosts);
+  testFunctions.push_back(testSaveCredential);
+  testFunctions.push_back(testSavePost);
 
   // Execute each test function and abort if there's a failure
   for(auto func:testFunctions){ assert(func()); }
