@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <mutex>
+#include <memory>
 #include "config.h"
 #include "serializers.h"
 #include "utils.h"
@@ -47,7 +48,8 @@ public:
     matchedFileMut = getDataFileMutex(filePath);
     unique_lock<mutex> lck(*matchedFileMut);
 
-    matchedFile = fopen(filePath.c_str(), "rb");
+    // Open this for reads and writes
+    matchedFile = fopen(filePath.c_str(), "rb+");
 
     fileSize = getFileSize(filePath);
   }
@@ -152,7 +154,7 @@ vector<string> itemMatchSweep(const string& filePath, string& dataType, map<stri
       // Interpret limit == -1 to mean "take all".
       allMatches.push_back(item);
 
-      if(limit != -1 && allMatches.size() >= limit){
+      if(limit != -1 && (int) allMatches.size() >= limit){
         break;
       }
     }
