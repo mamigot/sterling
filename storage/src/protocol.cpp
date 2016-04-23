@@ -88,8 +88,7 @@ public:
   }
 
   ServerResponse(const bool& conditional) {
-    if(conditional) singleItem = "true";
-    else singleItem = "false";
+    singleItem = conditional ? "true" : "false";
 
     itemSize = singleItem.length();
     numItems = 1;
