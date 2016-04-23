@@ -17,9 +17,9 @@ mutex fileMutexesAccess;
 // Get a pointer to a mutex corresponding to a given file path
 // Ex.:
 //  auto mut = getDataFileMutex(someFilePath);
-//  unique_lock<mutex> lck(*mut); // how to use it
+//  lock_guard<mutex> lck(*mut); // how to use it
 shared_ptr<mutex> getDataFileMutex(const string& filePath){
-  unique_lock<mutex> lock(fileMutexesAccess);
+  lock_guard<mutex> lock(fileMutexesAccess);
 
   if(!fileMutexes.count(filePath)){
     shared_ptr<mutex> mut(new mutex());
@@ -46,7 +46,7 @@ public:
 
     // Save the mutex that corresponds to the file we're observing
     matchedFileMut = getDataFileMutex(filePath);
-    unique_lock<mutex> lck(*matchedFileMut);
+    lock_guard<mutex> lck(*matchedFileMut);
 
     // Open this for reads and writes
     matchedFile = fopen(filePath.c_str(), "rb+");
@@ -55,7 +55,7 @@ public:
   }
 
   ~LReader() {
-    unique_lock<mutex> lck(*matchedFileMut);
+    lock_guard<mutex> lck(*matchedFileMut);
     fclose(matchedFile);
   }
 
@@ -100,7 +100,7 @@ private:
   string readItem(int offsetFromEnd) {
     // Lock the relevant file before reading each item (maximize granularity)
     char buff[itemSize];
-    unique_lock<mutex> lck(*matchedFileMut);
+    lock_guard<mutex> lck(*matchedFileMut);
 
     fseek(matchedFile, -offsetFromEnd, SEEK_END);
     fread(buff, itemSize, 1, matchedFile);
@@ -115,7 +115,7 @@ void appendToDataFile(const string& filePath, const string& content){
 
   // This entails access of a shared resource, so use a lock.
   auto mut = getDataFileMutex(filePath);
-  unique_lock<mutex> lck(*mut);
+  lock_guard<mutex> lck(*mut);
 
   outfile.open(filePath, ios_base::app);
   outfile << content;
@@ -182,7 +182,7 @@ int setActiveFlag(bool active, const string& filePath, string& dataType, map<str
     if(matchesSerialized(item, dataType, matchArgs)){
       // For each successful match, step back, modify the active bit to be
       // what was specified, and keep going.
-      unique_lock<mutex> lck(*mut);
+      lock_guard<mutex> lck(*mut);
 
       auto filePtr = reader.getFilePtr();
       auto currReadPtr = reader.getReadPtr();
