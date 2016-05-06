@@ -4,9 +4,9 @@
 #include <stdexcept>
 #include <cstring>
 #include <mutex>
-#include "filehandler.h"
 #include "utils.h"
-#include "config.h"
+#include "storage/filehandler.h"
+#include "storage/config.h"
 using namespace std;
 
 
@@ -26,7 +26,7 @@ mutex configParamsAccess;
 void setConfigParams();
 void initiateStorage();
 
-void configServer(){
+void configStorage(){
   setConfigParams();
   initiateStorage();
 }
@@ -90,7 +90,7 @@ string getStoredFilePath(StoredFileType storedFileType, const string& username){
   unsigned int maxFileNum = configParams.at(param);
 
   if(!maxFileNum){
-    throw std::runtime_error("maxFileNum is zero. Likely that configServer() has not been called.");
+    throw std::runtime_error("maxFileNum is zero. Likely that configStorage() has not been called.");
   }
 
   unsigned int numericUsername = 0;

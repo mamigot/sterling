@@ -6,8 +6,8 @@
 #include <cstring>
 #include <thread>
 #include <vector>
-#include "config.h"
-#include "protocol.h"
+#include "storage/config.h"
+#include "urequests.h"
 
 #define SA struct sockaddr
 #define LISTENQ 1024  // 2nd argument to listen()
@@ -18,7 +18,7 @@ void launchDispatcher(const int listenfd);
 
 int main(int argc, char **argv) {
   // Perform necessary configurations before listening for connections
-  configServer();
+  configStorage();
 
   int listenfd; // Unix file descriptor
   struct sockaddr_in servaddr;

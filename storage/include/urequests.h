@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_H_
-#define PROTOCOL_H_
+#ifndef UREQUESTS_H_
+#define UREQUESTS_H_
 
 
 // Analyze the user's request, perform the required action, and reply

@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
-#include "config.h"
+#include "storage/config.h"
 using namespace std;
 
 

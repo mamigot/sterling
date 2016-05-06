@@ -3,10 +3,10 @@
 #include <stdexcept>
 #include <mutex>
 #include <memory>
-#include "config.h"
-#include "serializers.h"
+#include "storage/config.h"
 #include "utils.h"
-#include "filehandler.h"
+#include "storage/serializers.h"
+#include "storage/filehandler.h"
 using namespace std;
 
 

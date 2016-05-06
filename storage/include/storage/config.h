@@ -64,7 +64,7 @@ extern map<string, int> configParams;
 
 // Before each session: creates the user data files of the application if they
 // don't exist and makes other relevant params available
-void configServer();
+void configStorage();
 
 // Get the absolute path to a stored file, provided its type as well as the
 // username of the user
