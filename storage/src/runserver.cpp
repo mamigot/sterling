@@ -1,26 +1,12 @@
-#include <stdio.h>       // perror, snprintf
-#include <stdlib.h>      // exit
-#include <unistd.h>      // close, write
-#include <sys/socket.h>  // socket, AF_INET, SOCK_STREAM, bind, listen, accept
-#include <netinet/in.h>  // servaddr, INADDR_ANY, htons
-#include <cstring>
-#include <thread>
 #include <vector>
+#include <thread>
 #include "storage/config.h"
-#include "urequests.h"
-
-#define SA struct sockaddr
-#define LISTENQ 1024  // 2nd argument to listen()
+#include "messaging.h"
 
 
-void launchDispatcher(const int listenfd);
-
-
-int main(int argc, char **argv) {
-  // Perform necessary configurations before listening for connections
-  configStorage();
-
-  int listenfd; // Unix file descriptor
+int getListenFD(const int port) {
+  // start listening on the given port and return a Unix file descriptor
+  int listenfd;
   struct sockaddr_in servaddr;
 
   // 1. Create the socket
@@ -33,7 +19,7 @@ int main(int argc, char **argv) {
   memset(&servaddr, 0, sizeof(servaddr)); // Zero it
   servaddr.sin_family = AF_INET; // Specify the family
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Use any network card present
-  servaddr.sin_port = htons(PORT_NUM); // Daytime server
+  servaddr.sin_port = htons(port); // Daytime server
 
   // 3. "Bind" that address object to our listening file descriptor
   if (::bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
@@ -43,35 +29,29 @@ int main(int argc, char **argv) {
 
   // 4. Tell the system that we are going to use this socket for
   // listening and request a queue length
-  if (listen(listenfd, LISTENQ) == -1) {
+  if (listen(listenfd, 1024) == -1) {
     perror("Unable to listen");
     exit(3);
   }
 
-  // Prepare for requests and handle them as they come
-  launchDispatcher(listenfd);
+  return listenfd;
 }
 
-void launchDispatcher(const int listenfd){
-  int connfd;
-  vector<thread> requests;
+int main(int argc, char **argv) {
+  configStorage();
 
-  // Block until someone connects.
-  for (;;) {
-    // We could provide a sockaddr if we wanted to know details of whom we are
-    // talking to.
-    fprintf(stderr, "Ready to connect.\n");
-    if ((connfd = accept(listenfd, (SA *) NULL, NULL)) == -1) {
-      perror("accept failed");
-      exit(4);
-    }
-    fprintf(stderr, "Connected.\n");
+  unsigned int activePorts[] = {UREQUEST_PORT, LEADERSHIP_PORT};
+  vector<thread> listeners;
 
-    // We have a connection. Do whatever our task is.
-    requests.push_back(
-      thread([connfd] { handleRequest(connfd); })
+  for(auto port:activePorts){
+    const unsigned int listenfd = getListenFD(port);
+
+    listeners.push_back(
+      thread([port, listenfd] {
+        dispatcher(port, listenfd);
+      })
     );
   }
 
-  for(thread& th:requests){ th.join(); }
+  for(thread& th:listeners){ th.join(); }
 }
