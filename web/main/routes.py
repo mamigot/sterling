@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import session, render_template, request, redirect, url_for, flash
-from access import User, ErrorProcessingRequest
+from access import User, ExceedingFieldSize, ErrorProcessingRequest
 from app import app
 
 
@@ -25,13 +25,16 @@ def register():
         )
 
     elif request.method == 'POST':
-        user = User(request.form['username'], request.form['password'])
-
         try:
+            user = User(request.form['username'], request.form['password'])
+
             # Proceed once we know the credential is stored
             user.save_credential()
             session['username'] = user.username
             return redirect(url_for('timeline'))
+
+        except ExceedingFieldSize as e:
+            flash(e.message)
         except ErrorProcessingRequest:
             flash('Failed registration –try a different username')
 
@@ -45,11 +48,14 @@ def deactivate():
         )
 
     elif request.method == 'POST':
-        user = User(request.form['username'], request.form['password'])
-
         try:
+            user = User(request.form['username'], request.form['password'])
+
             user.delete_credential()
             flash('Successful deactivation')
+
+        except ExceedingFieldSize as e:
+            flash(e.message)
         except ErrorProcessingRequest:
             flash('Failed deactivation')
 
@@ -63,12 +69,15 @@ def login():
         )
 
     elif request.method == 'POST':
-        user = User(request.form['username'], request.form['password'])
-
         try:
+            user = User(request.form['username'], request.form['password'])
+
             user.verify_credential()
             session['username'] = user.username
             return redirect(url_for('timeline'))
+
+        except ExceedingFieldSize as e:
+            flash(e.message)
         except ErrorProcessingRequest:
             flash('Failed login –cannot verify the credential')
 
@@ -107,28 +116,31 @@ def profile(requested_username=None):
 
     if requested_username != session.get('username'):
         # Dealing with a secondary user (i.e. not the one who's logged in)
-        secondary_user = User(requested_username)
+        try:
+            secondary_user = User(requested_username)
 
-        if not secondary_user.exists():
-            return render_template('404.html',
-                message='User "%s" does not exist' % secondary_user.username
+            if not secondary_user.exists():
+                return render_template('404.html',
+                    message='User "%s" does not exist' % secondary_user.username
+                )
+
+            # Fetch the secondary user's posts and the relationship to the main user
+            return render_template('profile.html',
+                username=user.username,
+                posts=secondary_user.get_profile_posts(),
+                secondary_username=secondary_user.username,
+                is_following=user.is_following(secondary_user),
+                is_followed_by=secondary_user.is_following(user)
             )
 
-        # Fetch the secondary user's posts and the relationship to the main user
-        return render_template('profile.html',
-            username=user.username,
-            posts=secondary_user.get_profile_posts(),
-            secondary_username=secondary_user.username,
-            is_following=user.is_following(secondary_user),
-            is_followed_by=secondary_user.is_following(user)
-        )
+        except ExceedingFieldSize as e:
+            flash(e.message)
 
-    else:
-        # Fetch our own profile
-        return render_template('profile.html',
-            username=user.username,
-            posts=user.get_profile_posts()
-        )
+    # Fetch our own profile
+    return render_template('profile.html',
+        username=user.username,
+        posts=user.get_profile_posts()
+    )
 
 @app.route('/followers', methods=['GET'])
 @login_required
@@ -172,7 +184,10 @@ def post():
     user = User(username=session.get('username'))
 
     if request.form.get('savepost'):
-        user.save_post(text=request.form.get('text'))
+        try:
+            user.save_post(text=request.form.get('text'))
+        except ExceedingFieldSize as e:
+            flash(e.message)
 
     elif request.form.get('deletepost'):
         user.delete_post(request.form.get('timestamp'))

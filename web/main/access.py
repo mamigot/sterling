@@ -4,10 +4,21 @@ import config, client, serializers
 class ErrorProcessingRequest(Exception):
     pass
 
+class ExceedingFieldSize(Exception):
+    def __init__(self, field_name):
+        super().__init__()
+        self.field_name = field_name
+        self.message = 'Cannot process: %s exceeds field size.' % field_name
 
 class User:
     """Used to make requests to the server and parse the outputs accordingly"""
     def __init__(self, username, password=None):
+        if len(username) > config.FIELD_SIZE_USERNAME:
+            raise ExceedingFieldSize(field_name='username')
+
+        elif password and len(password) > config.FIELD_SIZE_PASSWORD:
+            raise ExceedingFieldSize(field_name='password')
+
         self.username = username
         self.password = password
 
@@ -86,6 +97,9 @@ class User:
         Args:
             text (str): text content of the post
         """
+        if len(text) > config.FIELD_SIZE_TEXT:
+            raise ExceedingFieldSize(field_name='text')
+
         command = 'SAVE/posts/%s:%s\0' % (self.username, text)
         output = client.request(command)
 
