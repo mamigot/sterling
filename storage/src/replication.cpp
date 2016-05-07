@@ -15,15 +15,57 @@ using namespace std;
 
 
 /*
-
 If an RM is not the primary, it has a thread that is repeatedly spinning to
 consume requests on the requestQueue. Once it becomes the leader, it gets rid
 of this request.
-
 */
+
+enum RMStatus { Alive, Dead };
+
+class RMSociety {
+/*
+RMSociety:
+- Tells me what my UREQUEST_PORT and IREQUEST_PORT are
+- Tells me who the leader is (and reflects changes if needed)
+- Has a method to refresh itself by sending heartbeats around
+- Tells me the statuses of every RM (refreshed periodically)
+- Has a method to tell me if a given RM is alive or dead
+*/
+
+public:
+  bool iAmPrimaryRM() { return myURequestPort == primaryURequestPort; }
+
+  void heartbeats() {
+    // Conduct heartbeats. Update rmStatuses, lastHeardFromPrimary and
+    // potentially primaryURequestPort.
+
+    // Send heartbeat checks every periodMs
+    const unsigned int periodMs = 1000;
+
+    while(true) {
+      //(hold the mutex only when we're ready to update rmStatuses...
+      // otherwise we'll have it ad infinitum)
+
+      // sleep after making a particular check
+    }
+  }
+
+private:
+  const unsigned int myURequestPort;
+  const unsigned int myIRequestPort;
+
+  atomic<unsigned int> primaryURequestPort;
+  atomic<unsigned int> lastHeardFromPrimary;
+
+  map<unsigned int, RMStatus> rmStatuses;
+  mutex rmStatusesMut;
+
+}
 
 class URequestLedger {
 public:
+  URequestLedger() : inTransitMode(false) {}
+
   void add(const string& request, const unsigned int port) {
     lock_guard<mutex> lck(mut);
 
@@ -53,11 +95,14 @@ public:
   }
 
 private:
+  atomic<bool> inTransitMode; // while true, user requests should not be processed
+
   map<string, vector<int>> ledger; // may have to initialize these
-  mutex mut;
+  mutex ledgerMut;
 
   void spawnWorker() {
     // creates a thread that processes requests from the ledger
+    // as long as we're not in TRANSIT_MODE
   }
 
   void propagateToBackupRMs(const string& request) {
@@ -66,39 +111,8 @@ private:
 
 };
 
-// While true, user requests should not be processed.
-// Just added to requestLedger/requestQueue.
-atomic<bool> TRANSIT_MODE(false);
-
-/*
-// Base ports of the setup
-const unsigned int MY_PORT = stoi(getenv("MY_PORT"), NULL, 10);
-atomic<unsigned int> PRIMARY_RM_PORT;
-*/
-
-// Period of time in milliseconds between each heartbeat interval
-//const unsigned int HEARTBEAT_PERIOD_MS = 1000;
-
-// Used to keep track of the leader in the setup. Refresh periodically.
-atomic<unsigned int> lastHeardFromPrimary(0);
-
-enum RMStatus { Alive, Dead };
-
-// Maps every known RM to a status (enum). Refresh periodically.
-map<unsigned int, RMStatus> rmStatuses;
-mutex rmStatusesMut;
-
-/*
-map<string, vector<int>> requestLedger; // the primary RM keeps track of the
-// confirmations its waiting to hear... when it receives a request from the
-// user, it knows to add it to this. Likewise, when it receives a confirmation
-// from a backup RM, it purges its requirement
-mutex requestLedgerMut;
-*/
-
+RMSociety society;
 URequestLedger ledger;
-
-bool iAmPrimaryRM() { return MY_PORT == PRIMARY_RM_PORT };
 
 string modifyRequestAsPrimaryRM(string& request) {
   // The contents of the request may need to change if it's being submitted
@@ -122,7 +136,7 @@ void bounceRequest(const unsigned int connfd) {
 void processURequest(const string& request, const unsigned int connfd) {
   // Request comes from a user
 
-  if(!iAmPrimaryRM() || requestQueue.length() > 0) {
+  if(!society.iAmPrimaryRM() || requestQueue.length() > 0) {
     // Bounce it if I'm a backup or I have other requests to attend to first
     bounceRequest(connfd);
   }
@@ -219,8 +233,6 @@ bool isAnRMPort(const unsigned int port) {
   // Users will contact the user port. we want the internal port.
   // Maybe this should be isInternalPort
 
-
-
   // true iff the requested port belongs to the setup of RMs
   lock_guard<rmStatusesMut> lck;
 
@@ -302,5 +314,9 @@ void configReplication() {
 
   // start heartbeatChecks as a running thread that, after HEARTBEAT_PERIOD_MS,
   // polls everybody
+
+  // configure society and ledger
+  // society = ...
+  // ledger = ...
 
 }
