@@ -40,7 +40,7 @@ int getListenFD(const int port) {
 int main(int argc, char **argv) {
   configStorage();
 
-  unsigned int activePorts[] = {UREQUEST_PORT, LEADERSHIP_PORT};
+  unsigned int activePorts[] = {UREQUEST_PORT, RMREQUEST_PORT, LEADERSHIP_PORT};
   vector<thread> listeners;
 
   for(auto port:activePorts){

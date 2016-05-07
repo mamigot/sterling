@@ -20,6 +20,8 @@ export DATASERVER_HOST="localhost"
 
 export DATASERVER_PORT=13002
 
+export CLIENT_PORT=13000
+
 export DATASERVER_BUFFSIZE=8192
 
 ########################################

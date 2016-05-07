@@ -17,6 +17,14 @@ echo "IF YOU ARE USING AN OLDER VERSION, THE APPLICATION WILL NOT COMPILE."
 
 export DATASERVER_PORT=13002
 
+export UREQUEST_PORT=13002
+export RMREQUEST_PORT=13003
+export LEADERSHIP_PORT=13004
+
+# Make sure the port is free by killing the process that might be taking it up
+echo "kill -9 $(lsof -ti tcp:13002)"
+kill -9 $(lsof -ti tcp:13002)
+
 export DATASERVER_BUFFSIZE=8192
 
 ########################################

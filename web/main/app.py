@@ -1,9 +1,11 @@
+import os
 from flask import Flask
 
 
 app = Flask(__name__)
 app.secret_key = 'badsecretkey'
 app.debug = True
+app.port = int(os.environ['CLIENT_PORT'])
 
 
 ######## Routes ########

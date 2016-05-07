@@ -12,6 +12,8 @@ using namespace std;
 // The following regex patterns are used to interpret the command that
 // the user specifies in its request
 
+unsigned int BUFFSIZE = 8192;
+
 /********** GET/... **********/
 regex reGet("GET/.*");
 
@@ -87,19 +89,18 @@ public:
     }
   }
 
-  ServerResponse(const bool& conditional) {
+  ServerResponse(const bool& conditional) : numItems(1) {
     singleItem = conditional ? "true" : "false";
-
     itemSize = singleItem.length();
-    numItems = 1;
+    //numItems = 1;
   }
 
-  ServerResponse(const ServerSignal& status) {
-    if(status == ServerSignal::Success) singleItem = "success";
-    else if(status == ServerSignal::Error) singleItem = "error";
-
+  ServerResponse(const ServerSignal& status) : numItems(1) {
+    singleItem = (status == ServerSignal::Success) ? "success" : "error";
     itemSize = singleItem.length();
-    numItems = 1;
+    //if(status == ServerSignal::Success) singleItem = "success";
+    //else if(status == ServerSignal::Error) singleItem = "error";
+    //numItems = 1;
   }
 
   string getSingleItem() const { return singleItem; }
@@ -127,7 +128,64 @@ void respond(const int connfd, const ServerResponse& resp, TransportBuffer& buff
 void sendPacket(const int connfd, const string& content, const int buffSize);
 
 
+
+
+
+
+requestQueue = // used by backup RMs to keep track of their requests
+mutex requestQueueAccess;
+
+requestLedger = // used by the primary RM to keep track of the backups' statuses
+mutex requestLedgerAccess;
+
+
+void uRequest(const unsigned int connfd) {
+  if(!iAmPrimaryRM()) {}; // Bounce!
+
+  // Add the request to requestLedger (for each backup)
+
+  // Tell backups to implement it (don't wait for their confirmation)
+
+  // Process the request
+
+  // Get back to the user with confirmation of completion
+
+}
+
+void rmRequest(const unsigned int connfd) {
+
+  // Add the request to requestQueue
+
+  // Get back to the primary RM with confirmation of receipt (which allows
+  // the leader to remove it from its ledger)
+
+  // (Another thread processes the requests on the requestQueue. )
+  if(requestQueue.length() <= 1 && !TRANSIT_MODE) { // TODO: lock before
+    // There'll be at least one because we just put one
+
+    // Create a new thread to process the requestQueue, one-by-one
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void handleRequest(const int connfd){
+  /*
+  reflect the request on the filesystem
+  */
+
   cerr << "Responding to request." << endl;
 
   char data[BUFFSIZE];

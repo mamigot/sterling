@@ -6,11 +6,6 @@
 using namespace std;
 
 
-// Server connection parameters (get from environment variables)
-const unsigned int PORT_NUM = stoi(getenv("DATASERVER_PORT"), NULL, 10);
-// Max. size of the buffer used to transport data between the server and client
-const unsigned int BUFFSIZE = stoi(getenv("DATASERVER_BUFFSIZE"), NULL, 10);
-
 // Used to pad serialized values
 const char fillerChar = '~';
 

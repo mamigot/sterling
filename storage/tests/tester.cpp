@@ -76,7 +76,7 @@ bool testSavePost(){
 }
 
 int main(){
-  configServer();
+  configStorage();
 
   // Register test functions
   vector<bool (*)()> testFunctions;
