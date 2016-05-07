@@ -55,6 +55,4 @@ string readConn(const unsigned int connfd);
 
 ClientSignal waitClientSignal(const unsigned int connfd);
 
-ClientSignal waitClientSignal(const unsigned int connfd, unsigned int maxTimeoutMs);
-
 #endif
