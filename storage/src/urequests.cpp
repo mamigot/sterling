@@ -42,11 +42,8 @@ regex reSave("SAVE/.*");
 // SAVE/credential/username:password\0
 regex reSaveCredential("SAVE/credential/([a-z]+):([a-z]+)\0");
 
-// SAVE/posts/username:text\0
-regex reSavePost("SAVE/posts/([a-z]+):(.*)\0");
-
 // SAVE/posts/username:text:timestamp\0
-regex reSavePostWithTimestamp("SAVE/posts/([a-z]+):(.*):(-?[0-9]+)\0");
+regex reSavePost("SAVE/posts/([a-z]+):(.*):(-?[0-9]+)\0");
 
 // SAVE/relations/username:friendUsername\0
 regex reFollow("SAVE/relations/([a-z]+):([a-z]+)\0");
@@ -115,10 +112,6 @@ Message parseRequest(const int connfd){
         succeeded = saveCredential(username, password);
 
       }else if(regex_match(input, matches, reSavePost)){
-        string username = matches[1], text = matches[2];
-        succeeded = savePost(username, text);
-
-      }else if(regex_match(input, matches, reSavePostWithTimestamp)){
         string username = matches[1], text = matches[2], timestamp = matches[3];
         succeeded = savePost(username, text, timestamp);
 

@@ -17,7 +17,6 @@ bool saveCredential(const string& username, const string& password);
 bool deleteCredential(const string& username, const string& password);
 
 // true if success, false otherwise
-bool savePost(const string& username, const string& text);
 bool savePost(const string& username, const string& text, const string& postTimestamp);
 
 // true if success, false otherwise

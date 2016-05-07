@@ -79,10 +79,6 @@ bool deleteCredential(const string& username, const string& password){
   return true; // iff everything has gone well
 }
 
-bool savePost(const string& username, const string& text){
-  return savePost(username, text, getTimeNow());
-}
-
 bool savePost(const string& username, const string& text, const string& postTimestamp){
   // Save the post (as seen by the user's profile file and the followers'
   // timeline files).
