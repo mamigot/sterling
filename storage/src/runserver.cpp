@@ -1,7 +1,7 @@
 #include <vector>
 #include <thread>
-#include "storage/config.h"
 #include "messaging.h"
+#include "storage/config.h"
 #include "replication.h"
 
 

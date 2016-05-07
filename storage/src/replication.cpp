@@ -1,3 +1,19 @@
+#include <atomic>
+#include <mutex>
+#include <memory>
+#include <thread>
+#include <unistd.h>
+#include <regex>
+#include <string>
+#include <map>
+#include <vector>
+#include <iostream>
+#include "messaging.h"
+#include "urequests.h"
+#include "replication.h"
+using namespace std;
+
+
 /*
 
 If an RM is not the primary, it has a thread that is repeatedly spinning to
@@ -6,20 +22,65 @@ of this request.
 
 */
 
+class URequestLedger {
+public:
+  void add(const string& request, const unsigned int port) {
+    lock_guard<mutex> lck(mut);
+
+
+    // (only add it if it's a save or a delete request.. ignore reads)
+
+    // As long as there are requests in the ledger, they're broadcasted to the
+    // backups in an ordered manner by a dedicated thread.
+    // - broadcast a request via reliable multicast
+    // - do not send the next one until this one disappears from the ledger
+    //   (this'd happen if 1. the backup tells the primary that it has received
+    //    it and queued it appropriately or 2. if the backup goes down and it's
+    //    relieved of its obligations <-- the heartbeat thread would do this)
+
+    // After adding an entry to the ledger, it spins up a thread to enforce it
+    // if there isn't one doing that already
+
+    // (If I'm the leader, this->propagateToBackupRMs())
+
+    // call this->spawnWorker() if necessary
+
+  }
+
+  void delete(const string& request, const unsigned int port) {
+    lock_guard<mutex> lck(mut);
+
+  }
+
+private:
+  map<string, vector<int>> ledger; // may have to initialize these
+  mutex mut;
+
+  void spawnWorker() {
+    // creates a thread that processes requests from the ledger
+  }
+
+  void propagateToBackupRMs(const string& request) {
+    // talk to the other RMs via their internal ports!
+  }
+
+};
 
 // While true, user requests should not be processed.
 // Just added to requestLedger/requestQueue.
-atomic<bool> TRANSIT_MODE = false;
+atomic<bool> TRANSIT_MODE(false);
 
+/*
 // Base ports of the setup
 const unsigned int MY_PORT = stoi(getenv("MY_PORT"), NULL, 10);
 atomic<unsigned int> PRIMARY_RM_PORT;
+*/
 
 // Period of time in milliseconds between each heartbeat interval
-const unsigned int HEARTBEAT_PERIOD_MS = 1000;
+//const unsigned int HEARTBEAT_PERIOD_MS = 1000;
 
 // Used to keep track of the leader in the setup. Refresh periodically.
-atomic<unsigned int> lastHeardFromPrimary = 0;
+atomic<unsigned int> lastHeardFromPrimary(0);
 
 enum RMStatus { Alive, Dead };
 
@@ -27,23 +88,100 @@ enum RMStatus { Alive, Dead };
 map<unsigned int, RMStatus> rmStatuses;
 mutex rmStatusesMut;
 
+/*
 map<string, vector<int>> requestLedger; // the primary RM keeps track of the
 // confirmations its waiting to hear... when it receives a request from the
 // user, it knows to add it to this. Likewise, when it receives a confirmation
 // from a backup RM, it purges its requirement
 mutex requestLedgerMut;
+*/
 
+URequestLedger ledger;
+
+bool iAmPrimaryRM() { return MY_PORT == PRIMARY_RM_PORT };
+
+string modifyRequestAsPrimaryRM(string& request) {
+  // The contents of the request may need to change if it's being submitted
+  // to the primary RM. This performs those checks and returns an updated one.
+  // (It's possible that no modifications will be made; depends on the request.)
+
+  // If we're dealing with a savePost request, insert our time
+  smatch matches;
+  if(regex_match(request, matches, reSavePostTimeless)){
+    request = insertTimestampIntoSavePostRequest(request);
+  }
+
+  return request;
+}
+
+void bounceRequest(const unsigned int connfd) {
+  // Bounce the request via connfd and tell the user to redirect his
+  // efforts to PRIMARY_RM_PORT
+}
+
+void processURequest(const string& request, const unsigned int connfd) {
+  // Request comes from a user
+
+  if(!iAmPrimaryRM() || requestQueue.length() > 0) {
+    // Bounce it if I'm a backup or I have other requests to attend to first
+    bounceRequest(connfd);
+  }
+
+  // The primary may want to modify the raw request
+  request = modifyRequestAsPrimaryRM(request);
+
+  // Expect all backup RMs to implement it
+  ledger.add(request);
+
+  // Process the request and get back to the user
+  sendConn(std::ref(parseURequest(request)), connfd);
+}
+
+void processIRequest(const string& request, const unsigned int connfd) {
+  // Request comes from another RM (it's internal)
+
+  if(isURequest(request)){
+    // Set up to be implemented eventually
+    ledger.add(request);
+
+    // Let the sender know that the request has been noted
+    sendConn(std::ref(Message(ServerSignal::Success)), connfd);
+  }
+
+  // This has to be an election message or something like that
+
+}
 
 void requestHandler(const unsigned int connfd, const unsigned int recvPort) {
+  string request = readConn(connfd);
+
+  if(recvPort == UREQUEST_PORT){ // Request comes from the user
+    cerr << "Responding to the user request." << endl;
+
+    if(isURequest(request)) {
+      processURequest(request, connfd);
+
+    }else{
+      throw std::runtime_error("Non-user request received via UREQUEST_PORT");
+    }
+
+  }else if(recvPort == IREQUEST_PORT){ // Request comes from another RM
+    cerr << "Responding to the internal request." << endl;
+
+    processIRequest(request, connfd);
+  }
+
+  close(connfd);
+  cerr << "Finished." << endl;
 
   /*
-
   I know on what port I received the request on so I know if it came from another
   RM or a user.
 
   If it's a request from a user and I'm not the leader: bounce!
 
   If it's a request from a user and I'm the leader:
+    (if it's savePost, modify it to include my timestamp!)
   - Add the request to requestLedger (for each backup)
   - Tell backups to implement it (don't wait for their confirmation)
   - Process the request
@@ -63,11 +201,7 @@ void requestHandler(const unsigned int connfd, const unsigned int recvPort) {
 
   If it's a request from an RM and I'm the leader: process it!
 
-
-
-
   // could be:
-  /*
   - user request (being sent from the primary for replication purposes)
   - leadership inquiry (someone asking if i'm the leader)
   - leadership announcement (someone telling me that he's the leader)
@@ -76,16 +210,14 @@ void requestHandler(const unsigned int connfd, const unsigned int recvPort) {
     i go into TRANSIT_MODE which means that i have to queue my own requests
     in addition to propagating them... i'd make the snapshot and return to
     my duties. note that if i'm not the leader, i'd just deny it)
-
   */
-
 }
 
-bool iAmPrimaryRM() { return MY_PORT == PRIMARY_RM_PORT };
+/*
 
 bool isAnRMPort(const unsigned int port) {
-  /* Users will contact the user port. we want the internal port.
-  Maybe this should be isInternalPort */
+  // Users will contact the user port. we want the internal port.
+  // Maybe this should be isInternalPort
 
 
 
@@ -94,12 +226,6 @@ bool isAnRMPort(const unsigned int port) {
 
   return rmStatuses.find(port) != rmStatuses.end();
 };
-
-void addToRequestLedger(const unsigned int port, const string& request) {};
-
-void addToRequestLedger(const string& request) {}; // add to all ports' accounts
-
-void deleteFromRequestLedger(const unsigned int port, const string& request) {};
 
 void leadershipInquiry() {
 
@@ -134,14 +260,10 @@ void leadershipAnnouncement() {
 
 void handleSnapshotRequest() {
 
-  /*
-
-  (only valid if I'm a leader; if i grant the request,
-  i go into TRANSIT_MODE which means that i have to queue my own requests
-  in addition to propagating them... i'd make the snapshot and return to
-  my duties. note that if i'm not the leader, i'd just deny it)
-
-  */
+  // (only valid if I'm a leader; if i grant the request,
+  // i go into TRANSIT_MODE which means that i have to queue my own requests
+  // in addition to propagating them... i'd make the snapshot and return to
+  // my duties. note that if i'm not the leader, i'd just deny it)
 
 }
 
@@ -172,6 +294,7 @@ void heartbeatChecker() {
   // continuously
 
 }
+*/
 
 void configReplication() {
 
