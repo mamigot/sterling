@@ -80,13 +80,14 @@ bool deleteCredential(const string& username, const string& password){
 }
 
 bool savePost(const string& username, const string& text){
+  return savePost(username, text, getTimeNow());
+}
+
+bool savePost(const string& username, const string& text, const string& postTimestamp){
   // Save the post (as seen by the user's profile file and the followers'
-  // timeline files) --slow
+  // timeline files).
 
   // Record to the user's profile file
-  // Note that the timestamp is created here... not by the client
-  string postTimestamp = getTimeNow();
-
   string profilePostPath = getStoredFilePath(StoredFileType::ProfilePostFile, username);
 
   ProfilePost profilePost = {Active::Yes, username, postTimestamp, text};
