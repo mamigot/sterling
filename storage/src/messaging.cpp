@@ -1,4 +1,6 @@
 #include <thread>
+#include <sstream>
+#include <iostream>
 #include "replication.h"
 #include "messaging.h"
 using namespace std;
@@ -58,7 +60,6 @@ string readConn(const unsigned int connfd) {
 
 void sendConn(const string& content, const unsigned int connfd) {
   // Send via the file descriptor
-  char data[BUFFSIZE];
 
   if(write(connfd, content.c_str(), BUFFSIZE) == -1){
     cerr << "Write to connection failed." << endl;
@@ -70,16 +71,14 @@ void sendConn(const string& content, const unsigned int connfd) {
 void sendConn(const Message& msg, const unsigned int connfd) {
   // Check if the response fits the criteria to be sent
   unsigned int singleItemSize, numItems, maxItemsPerPacket, numPacketsToExpect;
-  string rawMsg;
+  string raw;
 
-  char data[BUFFSIZE];
-
-  if((singleItemSize = resp.getItemSize()) > BUFFSIZE){
-    rawMsg = "500: Response is too big to fit in the given buffer. Cancelling.";
-    sendConn(rawMsg, connfd);
+  if((singleItemSize = msg.getItemSize()) > BUFFSIZE){
+    raw = "500: Response is too big to fit in the given buffer. Cancelling.";
+    sendConn(raw, connfd);
   }
 
-  if(!(numItems = resp.getNumItems())){
+  if(!(numItems = msg.getNumItems())){
     cerr << "Don't have anything to reply... ending connection" << endl;
     return;
   }
@@ -88,17 +87,17 @@ void sendConn(const Message& msg, const unsigned int connfd) {
   numPacketsToExpect = numItems / maxItemsPerPacket + 1;
 
   // Let the client know how many packets to expect
-  rawMsg = "201: Expect packets: " + to_string(numPacketsToExpect);
-  sendPacket(connfd, rawMsg);
+  raw = "201: Expect packets: " + to_string(numPacketsToExpect);
+  sendConn(raw, connfd);
 
   // Wait for the client's acknowledgement and quit if not Ack
-  if(waitForClientSignal(connfd) != ClientSignal::Ack){
+  if(waitClientSignal(connfd) != ClientSignal::Ack){
     cerr << "Did not receive an ACK from the user. Quitting..." << endl;
   }
 
-  if(!resp.getMultipleItems().empty()){
+  if(!msg.getMultipleItems().empty()){
     // Send the packets, one at a time
-    vector<string> items = resp.getMultipleItems();
+    vector<string> items = msg.getMultipleItems();
 
     stringstream packetStream;
     for(size_t i = 0; i < numItems; i++){
@@ -107,17 +106,17 @@ void sendConn(const Message& msg, const unsigned int connfd) {
       if(!(i % maxItemsPerPacket) || i == numItems - 1){
         sendConn(packetStream.str(), connfd);
 
-        if(waitForClientSignal(connfd, buff) == ClientSignal::Ack){
+        if(waitClientSignal(connfd) == ClientSignal::Ack){
           packetStream.str(""); // Reset the string stream and continue
           packetStream.clear();
         }
       }
     }
-  }else if(!resp.getSingleItem().empty()){
+  }else if(!msg.getSingleItem().empty()){
     // Only one item to send
-    sendConn(resp.getSingleItem(), connfd);
+    sendConn(msg.getSingleItem(), connfd);
     // Wait for confirmation from the client
-    waitForClientSignal(connfd);
+    waitClientSignal(connfd);
   }
 }
 
@@ -146,7 +145,7 @@ ClientSignal waitClientSignal(const unsigned int connfd, unsigned int maxTimeout
   }
 }
 
-void dispatcher(const int listenerPort, const int listenfd) {
+void dispatcher(const unsigned int listenerPort, const unsigned int listenfd) {
   unsigned int connfd;
 
   // Block until someone connects.
@@ -160,6 +159,6 @@ void dispatcher(const int listenerPort, const int listenfd) {
     }
     fprintf(stderr, "Connected.\n");
 
-    thread([connfd, port] { requestHandler(connfd, port); }).detach();
+    thread([&] { requestHandler(connfd, listenerPort); }).detach();
   }
 }

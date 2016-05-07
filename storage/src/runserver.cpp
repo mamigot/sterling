@@ -2,6 +2,7 @@
 #include <thread>
 #include "storage/config.h"
 #include "messaging.h"
+#include "replication.h"
 
 
 int getListenFD(const int port) {
@@ -48,9 +49,7 @@ int main(int argc, char **argv) {
     const unsigned int listenfd = getListenFD(port);
 
     listeners.push_back(
-      thread([port, listenfd] {
-        dispatcher(port, listenfd);
-      })
+      thread([port, listenfd] { dispatcher(port, listenfd); })
     );
   }
 

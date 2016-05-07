@@ -13,7 +13,6 @@ using namespace std;
 
 #define SA struct sockaddr
 
-// Ports used by each RM to communicate with each other / clients
 const unsigned int UREQUEST_PORT = stoi(getenv("UREQUEST_PORT"), NULL, 10);
 const unsigned int IREQUEST_PORT = stoi(getenv("IREQUEST_PORT"), NULL, 10);
 
@@ -30,10 +29,10 @@ public:
   Message(const bool& conditional);
   Message(const ServerSignal& status);
 
-  vector<string> getMultipleItems();
-  string getSingleItem();
-  unsigned int getItemSize();
-  unsigned int getNumItems();
+  vector<string> getMultipleItems() const;
+  string getSingleItem() const;
+  unsigned int getItemSize() const;
+  unsigned int getNumItems() const;
 
 private:
   string singleItem;
