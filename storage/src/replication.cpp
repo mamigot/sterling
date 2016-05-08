@@ -42,15 +42,49 @@ public:
     myURequestPort = URequestPort;
     myIRequestPort = IRequestPort;
 
-    // Assume that all RMs are alive originally
     for(auto iPort:iPorts) {
       rmStatuses.insert(
+        // Assume that all RMs are dead originally (if it works, assume Alive)
         std::pair<unsigned int, RMStatus>(iPort, RMStatus::Alive)
       );
     }
+
+    /***** For now... *****/
+    primaryURequestPort = 13002;
+    lastHeardFromPrimary = 0;
   }
 
   bool iAmPrimaryRM() { return myURequestPort == primaryURequestPort; }
+
+  unsigned int getMyURequestPort() {
+    return (unsigned int) myURequestPort;
+  }
+
+  unsigned int getMyIRequestPort() {
+    return (unsigned int) myIRequestPort;
+  }
+
+  unsigned int getPrimaryURequestPort() {
+    return (unsigned int) primaryURequestPort;
+  };
+
+  vector<unsigned int> getIRequestPorts(const RMStatus& status) {
+    // Exclude myself
+    vector<unsigned int> RMs;
+    RMs.push_back(13012);
+
+    /*
+    lock_guard<mutex> lck(rmStatusesMut);
+
+    for(auto& kv : rmStatuses) {
+      if(kv.second == status && kv.first != myIRequestPort){
+        RMs.push_back(kv.first);
+      }
+    }
+    */
+
+    return RMs;
+  }
 
   void heartbeats() {
     // Conduct heartbeats. Update rmStatuses, lastHeardFromPrimary and
@@ -67,21 +101,9 @@ public:
     }
   }
 
-  unsigned int getMyURequestPort() { return (unsigned int) myURequestPort; }
+  void election() {
+    // Conduct an election based on the known statuses of the other RMs.
 
-  unsigned int getMyIRequestPort() { return (unsigned int) myIRequestPort; }
-
-  vector<unsigned int> getOtherIRequestPorts(const RMStatus& status) {
-    vector<unsigned int> RMs;
-    lock_guard<mutex> lck(rmStatusesMut);
-
-    for(auto& kv : rmStatuses) {
-      if(kv.second == status && kv.first != myIRequestPort){ // Exclude myself
-        RMs.push_back(kv.first);
-      }
-    }
-
-    return RMs;
   }
 
 private:
@@ -135,7 +157,7 @@ public:
 
   void broadcast(const string& request) {
     // Ports of active backup RMs
-    auto iPorts = society.getOtherIRequestPorts(RMStatus::Alive);
+    auto iPorts = society.getIRequestPorts(RMStatus::Alive);
 
     // Implements ordering (do not release the lock until all RMs have
     // received the message)
@@ -163,12 +185,11 @@ private:
   mutex inTransitMut;
 
   void ledgerProcessor() {
-    string request = next();
 
     thread([&] {
 
       unique_lock<mutex> lck(inTransitMut);
-      while(size()){ parseURequest(request); }
+      while(size()){ parseURequest(next()); }
 
     }).detach();
   }
@@ -192,6 +213,9 @@ string modifyRequestAsPrimaryRM(string& request) {
 void bounceRequest(const unsigned int connfd) {
   // Bounce the request via connfd and tell the user to redirect his
   // efforts to PRIMARY_RM_PORT
+
+  string bounceMsg = "BOUNCE:" + std::to_string(society.getPrimaryURequestPort());
+  sendConn(Message(bounceMsg), connfd);
 }
 
 void processURequest(string& request, const unsigned int connfd) {
@@ -229,6 +253,7 @@ void processIRequest(const string& request, const unsigned int connfd) {
 
 void requestHandler(const unsigned int connfd, const unsigned int recvPort) {
   string request = readConn(connfd);
+  cerr << "Received request: " << request << endl;
 
   if(recvPort == UREQUEST_PORT){ // Request comes from the user
     cerr << "Responding to the user request." << endl;
@@ -370,7 +395,6 @@ void heartbeatChecker() {
 */
 
 void configReplication() {
-
   // read topology.txt and set relevant port numbers
 
   // start heartbeatChecks as a running thread that, after HEARTBEAT_PERIOD_MS,
@@ -379,5 +403,8 @@ void configReplication() {
   // configure society and ledger
   // society = ...
   // ledger = ...
+
+
+
 
 }

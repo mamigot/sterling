@@ -28,7 +28,6 @@ Message::Message(const vector<string>& multipleItems) :
 Message::Message(const bool& conditional) : numItems(1) {
   singleItem = conditional ? "true" : "false";
   itemSize = singleItem.length();
-  //numItems = 1;
 }
 
 Message::Message(const ServerSignal& status) : numItems(1) {
@@ -89,7 +88,7 @@ void sendConn(const Message& msg, const unsigned int connfd) {
 
   // Wait for the client's acknowledgement and quit if not Ack
   if(waitClientSignal(connfd) != ClientSignal::Ack){
-    cerr << "Did not receive an ACK from the user. Quitting..." << endl;
+    cerr << "Did not receive an ACK. Quitting..." << endl;
     return;
   }
 
@@ -118,9 +117,29 @@ void sendConn(const Message& msg, const unsigned int connfd) {
   }
 }
 
-void sendPort(const string& content, const unsigned int destPort) {}
+void sendPort(const string& content, const unsigned int destPort) {
+  int sockfd;
+  struct sockaddr_in servaddr;
 
-void sendPort(const Message& msg, const unsigned int destPort) {}
+  // Create the socket
+  if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    perror("Unable to create a socket");
+    exit(1);
+  }
+
+  // Set up the sockaddr_in
+  servaddr.sin_family = AF_INET; // Specify the family
+  servaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Use any network card present
+  servaddr.sin_port = htons(destPort);
+
+  if(connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
+    perror("Connect failed");
+    exit(1);
+  }
+
+  sendConn(content, sockfd);
+  close(sockfd);
+}
 
 ClientSignal waitClientSignal(const unsigned int connfd) {
   try{
@@ -138,7 +157,7 @@ ClientSignal waitClientSignal(const unsigned int connfd) {
 
   }catch (std::runtime_error &e) { cerr << e.what() << endl; }
 
-  cerr << "Response from user: [unknown]" << endl;
+  cerr << "Response from client: [unknown]" << endl;
   return ClientSignal::Unknown;
 }
 

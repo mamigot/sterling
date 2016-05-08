@@ -84,7 +84,8 @@ string insertTimestampIntoSavePostRequest(string& timelessRequest) {
     return newRequest;
   }
 
-  throw std::runtime_error("The provided request does not match reSavePostTimeless");
+  //throw std::runtime_error("The provided request does not match reSavePostTimeless");
+  return timelessRequest; // TODO: refactor this nonsense
 }
 
 bool isURequest(const string& request) {
