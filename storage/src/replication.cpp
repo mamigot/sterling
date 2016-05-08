@@ -34,6 +34,22 @@ RMSociety:
 */
 
 public:
+  RMSociety() {}
+
+  void config(const unsigned int URequestPort, const unsigned int IRequestPort,
+    vector<unsigned int>& iPorts) {
+
+    myURequestPort = URequestPort;
+    myIRequestPort = IRequestPort;
+
+    // Assume that all RMs are alive originally
+    for(auto iPort:iPorts) {
+      rmStatuses.insert(
+        std::pair<unsigned int, RMStatus>(iPort, RMStatus::Alive)
+      );
+    }
+  }
+
   bool iAmPrimaryRM() { return myURequestPort == primaryURequestPort; }
 
   void heartbeats() {
@@ -41,7 +57,7 @@ public:
     // potentially primaryURequestPort.
 
     // Send heartbeat checks every periodMs
-    const unsigned int periodMs = 1000;
+    //const unsigned int periodMs = 1000;
 
     while(true) {
       //(hold the mutex only when we're ready to update rmStatuses...
@@ -69,8 +85,8 @@ public:
   }
 
 private:
-  const unsigned int myURequestPort;
-  const unsigned int myIRequestPort;
+  atomic<unsigned int> myURequestPort;
+  atomic<unsigned int> myIRequestPort;
 
   atomic<unsigned int> primaryURequestPort;
   atomic<unsigned int> lastHeardFromPrimary;
@@ -79,7 +95,7 @@ private:
   map<unsigned int, RMStatus> rmStatuses;
   mutex rmStatusesMut;
 
-}
+};
 
 RMSociety society;
 
@@ -112,14 +128,14 @@ public:
     return next;
   }
 
-  unsigned int size() const {
+  unsigned int size() {
     lock_guard<mutex> lck(ledgerMut);
     return ledger.size();
   }
 
-  void broadcast(const string& request) const {
+  void broadcast(const string& request) {
     // Ports of active backup RMs
-    auto iPorts = society.getOtherIRequestPorts(RMStatus::Active);
+    auto iPorts = society.getOtherIRequestPorts(RMStatus::Alive);
 
     // Implements ordering (do not release the lock until all RMs have
     // received the message)
@@ -128,7 +144,7 @@ public:
     vector<thread> unicasts;
     for(auto& iPort:iPorts){
       unicasts.push_back(
-        thread([iPort, request] { sendPort(iPort, request); })
+        thread([iPort, request] { sendPort(request, iPort); })
       );
     }
 
@@ -149,7 +165,7 @@ private:
   void ledgerProcessor() {
     string request = next();
 
-    thread([request] {
+    thread([&] {
 
       unique_lock<mutex> lck(inTransitMut);
       while(size()){ parseURequest(request); }
@@ -167,10 +183,8 @@ string modifyRequestAsPrimaryRM(string& request) {
   // (It's possible that no modifications will be made; depends on the request.)
 
   // If we're dealing with a savePost request, insert our time
-  smatch matches;
-  if(regex_match(request, matches, reSavePostTimeless)){
-    request = insertTimestampIntoSavePostRequest(request);
-  }
+  // (if this doesn't apply, won't change anything)
+  request = insertTimestampIntoSavePostRequest(request);
 
   return request;
 }
@@ -180,7 +194,7 @@ void bounceRequest(const unsigned int connfd) {
   // efforts to PRIMARY_RM_PORT
 }
 
-void processURequest(const string& request, const unsigned int connfd) {
+void processURequest(string& request, const unsigned int connfd) {
   // Request comes from a user
 
   // Bounce it if I'm a backup or I have other requests to attend to first
@@ -193,7 +207,7 @@ void processURequest(const string& request, const unsigned int connfd) {
   if(isUpdateURequest(request)){ ledger.broadcast(request); }
 
   // Process the request and get back to the user
-  sendConn(std::ref(parseURequest(request)), connfd);
+  sendConn(parseURequest(request), connfd);
 }
 
 void processIRequest(const string& request, const unsigned int connfd) {
@@ -204,7 +218,7 @@ void processIRequest(const string& request, const unsigned int connfd) {
     if(isUpdateURequest(request)){ ledger.add(request); }
 
     // Let the sender know that the request has been noted
-    sendConn(std::ref(Message(ServerSignal::Success)), connfd);
+    sendConn(Message(ServerSignal::Success), connfd);
   }
 
   /***************/
