@@ -1,5 +1,5 @@
 # Ignore the directory with all application data
-volumes/*/*.txt
+volumes/*
 
 # Ignore Mac specific files
 .DS_Store
