@@ -9,23 +9,7 @@
 
 # Version 4.9 or greater of g++
 echo "CHECK THAT YOU ARE USING VERSION 4.9 OF g++ OR GREATER USING 'g++ -version'."
-echo "IF YOU ARE USING AN OLDER VERSION, THE APPLICATION WILL NOT COMPILE."
-
-########################################################################
-# Parameters to communicate with the client servers (change as needed) #
-########################################################################
-
-export DATASERVER_PORT=13002
-
-export MY_PORT=13002
-export UREQUEST_PORT=13002 # user requests
-export IREQUEST_PORT=13003 # internal requests
-
-# Make sure the port is free by killing the process that might be taking it up
-echo "kill -9 $(lsof -ti tcp:13002)"
-kill -9 $(lsof -ti tcp:13002)
-
-export DATASERVER_BUFFSIZE=8192
+echo -e "IF YOU ARE USING AN OLDER VERSION, THE APPLICATION WILL NOT COMPILE.\n"
 
 ########################################
 # Application configuration parameters #
@@ -41,14 +25,38 @@ export PATH=$PATH:$PROJECT_ROOT/main
 # Application configuration variables
 export CONFIG_PATH=$PROJECT_ROOT/config.txt
 
-# Directory wherein the application data is stored
-export STORAGE_FILES_PATH=$PROJECT_ROOT/volumes/
+# Directory wherein the application data is stored for this RM
+export STORAGE_FILES_PATH=$PROJECT_ROOT/volumes/$UREQUEST_PORT
 
 # Create it if it doesn't exist
 if [ -z "$(ls $STORAGE_FILES_PATH 2>/dev/null)" ]; then
   echo "Creating directory to hold the files... $STORAGE_FILES_PATH"
   mkdir $STORAGE_FILES_PATH
 fi
+
+#########################
+# Networking parameters #
+#########################
+
+# Ports of all replica managers in the network
+export TOPOLOGY_PATH=$PROJECT_ROOT/topology.txt
+
+# Max. size of the buffer used for communications across the network
+export DATASERVER_BUFFSIZE=8192
+
+if [ -n "$UREQUEST_PORT" ]; then echo "Using UREQUEST_PORT=$UREQUEST_PORT."
+else echo "Set env. var UREQUEST_PORT." return
+fi
+
+if [ -n "$IREQUEST_PORT" ]; then echo "Using IREQUEST_PORT=$IREQUEST_PORT."
+else echo "Set env. var IREQUEST_PORT." return
+fi
+
+echo
+
+# Kill processes that may be using the ports (potentially dangerous; maybe not)
+#kill -9 $(lsof -ti tcp:$UREQUEST_PORT) 2>/dev/null
+#kill -9 $(lsof -ti tcp:$IREQUEST_PORT) 2>/dev/null
 
 #########################################################
 # Launch the server and start listening for connections #

@@ -12,18 +12,6 @@ PIP_VERSION=pip3
 
 #$PIP_VERSION install -r requirements.txt
 
-#####################################################################
-# Parameters to communicate with the data server (change as needed) #
-#####################################################################
-
-export DATASERVER_HOST="localhost"
-
-export DATASERVER_PORT=13002
-
-export CLIENT_PORT=13000
-
-export DATASERVER_BUFFSIZE=8192
-
 ########################################
 # Application configuration parameters #
 ########################################
@@ -38,10 +26,26 @@ export PATH=$PATH:$PROJECT_ROOT:$PROJECT_ROOT/main
 # Application configuration variables
 export CONFIG_PATH=$PROJECT_ROOT/config.txt
 
+#########################
+# Networking parameters #
+#########################
+
+# Ports of the replica managers in the network
+export TOPOLOGY_PATH=$PROJECT_ROOT/topology.txt
+
+# Max. size of the buffer used for communications across the network
+export DATASERVER_BUFFSIZE=8192
+
+# Host of the RMs
+export DATASERVER_HOST="localhost"
+
+# Port that this process will be using
+export CLIENT_PORT=13000
+
 ###########################################
 # Launch the app (http://127.0.0.1:5000/) #
 ###########################################
 
-APP=$PROJECT_ROOT/main/app.py
+APP=$PROJECT_ROOT/main/app/app.py
 
 $PYTHON_VERSION $APP
