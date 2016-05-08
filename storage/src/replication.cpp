@@ -214,7 +214,7 @@ void bounceRequest(const unsigned int connfd) {
   // Bounce the request via connfd and tell the user to redirect his
   // efforts to PRIMARY_RM_PORT
 
-  string bounceMsg = "BOUNCE:" + std::to_string(society.getPrimaryURequestPort());
+  string bounceMsg = "303: Bounce: " + std::to_string(society.getPrimaryURequestPort());
   sendConn(Message(bounceMsg), connfd);
 }
 
