@@ -41,6 +41,13 @@ bool isURequest(const string& request) {
     regex_match(request, matches, reDelete);
 }
 
+bool isUpdateURequest(const string& request) {
+  smatch matches;
+
+  return regex_match(request, matches, reSave) || \
+    regex_match(request, matches, reDelete);
+}
+
 Message parseURequest(const string& input){
   cerr << "Requested data: " << input << ". Length: " << input.length() << endl;
 

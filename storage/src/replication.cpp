@@ -6,6 +6,7 @@
 #include <regex>
 #include <string>
 #include <map>
+#include <queue>
 #include <vector>
 #include <iostream>
 #include "messaging.h"
@@ -50,6 +51,23 @@ public:
     }
   }
 
+  unsigned int getMyURequestPort() { return (unsigned int) myURequestPort; }
+
+  unsigned int getMyIRequestPort() { return (unsigned int) myIRequestPort; }
+
+  vector<unsigned int> getOtherIRequestPorts(const RMStatus& status) {
+    vector<unsigned int> RMs;
+    lock_guard<mutex> lck(rmStatusesMut);
+
+    for(auto& kv : rmStatuses) {
+      if(kv.second == status && kv.first != myIRequestPort){ // Exclude myself
+        RMs.push_back(kv.first);
+      }
+    }
+
+    return RMs;
+  }
+
 private:
   const unsigned int myURequestPort;
   const unsigned int myIRequestPort;
@@ -57,61 +75,90 @@ private:
   atomic<unsigned int> primaryURequestPort;
   atomic<unsigned int> lastHeardFromPrimary;
 
+  // map IRequestPorts to statuses
   map<unsigned int, RMStatus> rmStatuses;
   mutex rmStatusesMut;
 
 }
 
+RMSociety society;
+
 class URequestLedger {
 public:
-  URequestLedger() : inTransitMode(false) {}
+  void add(const string& request) {
+    unsigned int ledgerSize;
+    {
+      lock_guard<mutex> lck(ledgerMut);
+      ledger.push(request);
 
-  void add(const string& request, const unsigned int port) {
-    lock_guard<mutex> lck(mut);
+      ledgerSize = ledger.size();
+    }
 
-
-    // (only add it if it's a save or a delete request.. ignore reads)
-
-    // As long as there are requests in the ledger, they're broadcasted to the
-    // backups in an ordered manner by a dedicated thread.
-    // - broadcast a request via reliable multicast
-    // - do not send the next one until this one disappears from the ledger
-    //   (this'd happen if 1. the backup tells the primary that it has received
-    //    it and queued it appropriately or 2. if the backup goes down and it's
-    //    relieved of its obligations <-- the heartbeat thread would do this)
-
-    // After adding an entry to the ledger, it spins up a thread to enforce it
-    // if there isn't one doing that already
-
-    // (If I'm the leader, this->propagateToBackupRMs())
-
-    // call this->spawnWorker() if necessary
-
+    if(ledgerSize <= 1){
+      // If there's more than one element, another thread will be working to
+      // complete the requests. However, if this is the only element, then we
+      // should spin up another thread to process the request (and potentially
+      // future ones).
+      ledgerProcessor();
+    }
   }
 
-  void delete(const string& request, const unsigned int port) {
-    lock_guard<mutex> lck(mut);
+  string next() {
+    lock_guard<mutex> lck(ledgerMut);
 
+    string next = ledger.front();
+    ledger.pop();
+
+    return next;
+  }
+
+  unsigned int size() const {
+    lock_guard<mutex> lck(ledgerMut);
+    return ledger.size();
+  }
+
+  void broadcast(const string& request) const {
+    // Ports of active backup RMs
+    auto iPorts = society.getOtherIRequestPorts(RMStatus::Active);
+
+    // Implements ordering (do not release the lock until all RMs have
+    // received the message)
+    unique_lock<mutex> lck(broadcastingMut);
+
+    vector<thread> unicasts;
+    for(auto& iPort:iPorts){
+      unicasts.push_back(
+        thread([iPort, request] { sendPort(iPort, request); })
+      );
+    }
+
+    // Wait until all sends have been completed to release the lock
+    for(thread& th:unicasts){ th.join(); }
   }
 
 private:
-  atomic<bool> inTransitMode; // while true, user requests should not be processed
-
-  map<string, vector<int>> ledger; // may have to initialize these
+  queue<string> ledger;
   mutex ledgerMut;
 
-  void spawnWorker() {
-    // creates a thread that processes requests from the ledger
-    // as long as we're not in TRANSIT_MODE
-  }
+  // Use when broadcasting a message to other RMs
+  mutex broadcastingMut;
 
-  void propagateToBackupRMs(const string& request) {
-    // talk to the other RMs via their internal ports!
+  // Use while exchanging data with another RM (e.g. when resurrecting)
+  mutex inTransitMut;
+
+  void ledgerProcessor() {
+    string request = next();
+
+    thread([request] {
+
+      unique_lock<mutex> lck(inTransitMut);
+      while(size()){ parseURequest(request); }
+
+    }).detach();
   }
 
 };
 
-RMSociety society;
 URequestLedger ledger;
 
 string modifyRequestAsPrimaryRM(string& request) {
@@ -136,16 +183,14 @@ void bounceRequest(const unsigned int connfd) {
 void processURequest(const string& request, const unsigned int connfd) {
   // Request comes from a user
 
-  if(!society.iAmPrimaryRM() || requestQueue.length() > 0) {
-    // Bounce it if I'm a backup or I have other requests to attend to first
-    bounceRequest(connfd);
-  }
+  // Bounce it if I'm a backup or I have other requests to attend to first
+  if(!society.iAmPrimaryRM() || ledger.size() > 0) { bounceRequest(connfd); }
 
   // The primary may want to modify the raw request
   request = modifyRequestAsPrimaryRM(request);
 
   // Expect all backup RMs to implement it
-  ledger.add(request);
+  if(isUpdateURequest(request)){ ledger.broadcast(request); }
 
   // Process the request and get back to the user
   sendConn(std::ref(parseURequest(request)), connfd);
@@ -156,13 +201,15 @@ void processIRequest(const string& request, const unsigned int connfd) {
 
   if(isURequest(request)){
     // Set up to be implemented eventually
-    ledger.add(request);
+    if(isUpdateURequest(request)){ ledger.add(request); }
 
     // Let the sender know that the request has been noted
     sendConn(std::ref(Message(ServerSignal::Success)), connfd);
   }
 
+  /***************/
   // This has to be an election message or something like that
+  /***************/
 
 }
 
