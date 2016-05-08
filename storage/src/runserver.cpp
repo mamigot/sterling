@@ -11,7 +11,7 @@ int getListenFD(const int port) {
   struct sockaddr_in servaddr;
 
   // Create the socket
-  if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+  if((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("Unable to create a socket");
     exit(1);
   }
@@ -20,17 +20,17 @@ int getListenFD(const int port) {
   memset(&servaddr, 0, sizeof(servaddr)); // Zero it
   servaddr.sin_family = AF_INET; // Specify the family
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Use any network card present
-  servaddr.sin_port = htons(port); // Daytime server
+  servaddr.sin_port = htons(port);
 
   // "Bind" that address object to our listening file descriptor
-  if (::bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
+  if(::bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
     perror("Unable to bind port");
     exit(2);
   }
 
   // Tell the system that we are going to use this socket for
   // listening and request a queue length
-  if (listen(listenfd, 1024) == -1) {
+  if(listen(listenfd, 1024) == -1) {
     perror("Unable to listen");
     exit(3);
   }
