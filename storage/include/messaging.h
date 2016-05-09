@@ -43,13 +43,11 @@ private:
 
 void dispatcher(const unsigned int listenerPort, const unsigned int listenfd);
 
-void sendPort(const string& content, const unsigned int destPort);
-
-void sendPort(const Message& msg, const unsigned int destPort);
-
-void sendConn(const string& content, const unsigned int connfd);
+int sendConn(const string& content, const unsigned int connfd);
 
 void sendConn(const Message& msg, const unsigned int connfd);
+
+int sendPort(const string& content, const unsigned int destPort);
 
 string readConn(const unsigned int connfd);
 

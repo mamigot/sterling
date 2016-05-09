@@ -54,14 +54,18 @@ string readConn(const unsigned int connfd) {
   return string(data);
 }
 
-void sendConn(const string& content, const unsigned int connfd) {
+int sendConn(const string& content, const unsigned int connfd) {
   // Send via the file descriptor
+  int bytes;
 
-  if(write(connfd, content.c_str(), BUFFSIZE) == -1){
+  if((bytes = write(connfd, content.c_str(), BUFFSIZE)) == -1){
     cerr << "Write to connection failed." << endl;
+
+  }else{
+    cerr << "Sent: '" << content << "'" << endl;
   }
 
-  cerr << "Sent: '" << content << "'" << endl;
+  return bytes;
 }
 
 void sendConn(const Message& msg, const unsigned int connfd) {
@@ -117,7 +121,7 @@ void sendConn(const Message& msg, const unsigned int connfd) {
   }
 }
 
-void sendPort(const string& content, const unsigned int destPort) {
+int sendPort(const string& content, const unsigned int destPort) {
   int sockfd;
   struct sockaddr_in servaddr;
 
@@ -137,8 +141,10 @@ void sendPort(const string& content, const unsigned int destPort) {
     exit(1);
   }
 
-  sendConn(content, sockfd);
+  int bytes = sendConn(content, sockfd);
   close(sockfd);
+
+  return bytes;
 }
 
 ClientSignal waitClientSignal(const unsigned int connfd) {
