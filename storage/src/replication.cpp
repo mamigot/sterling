@@ -18,13 +18,19 @@ using namespace std;
 // The following regex patterns are used to interpret the command that
 // RMs use to communicate internally
 
+// Leader requests (RMs should only send these internally to the leader)
+regex rePrimaryRMRequest("PRIMARY/.*");
+
+// BOUNCE/PrimaryURequestPort\0
+regex reBounce("BOUNCE/([0-9]+)\0");
+
 // SenderIRequestPort/ElectionInquiry\0
 regex reElectionInquiry("([0-9]+)/ElectionInquiry\0");
 
 // SenderIRequestPort/ElectionResponse/lastSequenceID/SenderURequestPort\0
 regex reElectionResponse("([0-9]+)/ElectionResponse/([0-9]+)/([0-9]+)\0");
 
-regex reSnapRequest(""); // TODO
+regex reSnapRequest("PRIMARY/"); // TODO
 
 regex reSnapResponseStart(""); // TODO
 
@@ -134,11 +140,14 @@ public:
     return RMs;
   }
 
-  void act(const string& request) {
+  void act(const string& request, const unsigned int connfd) {
     // Received an internal message from an RM. Parse it and act accordingly.
     smatch matches;
 
-    if(regex_match(request, matches, reElectionInquiry)) {
+    if(regex_match(request, matches, rePrimaryRMRequest) && !iAmPrimaryRM()) {
+      bounceRequest(connfd);
+
+    }else if(regex_match(request, matches, reElectionInquiry)) {
       unsigned int IRequestPort = std::atoi(matches[1]);
       vote(IRequestPort);
 
@@ -250,12 +259,20 @@ public:
     /*** TODO: Request a snap from the leader ***/
   }
 
+  void snapRequest() {
+    // wait for confirmation (i.e. not a BOUNCE)
+  }
+
+  void snapResponse() {
+    // handle different depending on whether I'm the leader or the requester
+  }
+
 private:
   atomic<unsigned int> myURequestPort;
   atomic<unsigned int> myIRequestPort;
 
   atomic<unsigned int> primaryURequestPort;
-  atomic<unsigned int> lastHeardFromPrimary;
+  //atomic<unsigned int> lastHeardFromPrimary;
 
   // Used to elect a new leader / primaryRM
   atomic<bool> inElection;
@@ -364,7 +381,7 @@ void bounceRequest(const unsigned int connfd) {
   // Bounce the request via connfd and tell the user to redirect his
   // efforts to PRIMARY_RM_PORT
 
-  string bounceMsg = "303: Bounce: " + std::to_string(society.getPrimaryURequestPort());
+  string bounceMsg = "BOUNCE/" + std::to_string(society.getPrimaryURequestPort()) + "\0";
   sendConn(Message(bounceMsg), connfd);
 }
 
