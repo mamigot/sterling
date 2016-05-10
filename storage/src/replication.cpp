@@ -7,10 +7,13 @@
 #include <regex>
 #include <cstring>
 #include <string>
+#include <fstream>
+#include <sstream>
 #include <map>
 #include <queue>
 #include <vector>
 #include <iostream>
+#include "utils.h"
 #include "messaging.h"
 #include "urequests.h"
 #include "replication.h"
@@ -26,6 +29,9 @@ regex reSequenceTaggedRequest("([0-9]+)/(.*)");
 
 // BOUNCE/PrimaryURequestPort\0
 regex reBounce("BOUNCE/([0-9]+)\0");
+
+// Plain heartbeat
+regex reHeartbeat("HEARTBEAT\0");
 
 // SenderIRequestPort/ElectionInquiry\0
 regex reElectionInquiry("([0-9]+)/ElectionInquiry\0");
@@ -185,7 +191,7 @@ private:
 
 class RMSociety {
 public:
-  RMSociety() {}
+  RMSociety() : activatedHeartbeats(false) {}
 
   void config(const unsigned int URequestPort, const unsigned int IRequestPort,
     vector<unsigned int>& iPorts) {
@@ -195,16 +201,10 @@ public:
 
     for(auto iPort:iPorts) {
       rmStatuses.insert(
-        // Assume that all RMs are dead originally (if it works, assume Alive)
-        std::pair<unsigned int, RMStatus>(iPort, RMStatus::Alive)
+        // Assume that all RMs are dead originally
+        std::pair<unsigned int, RMStatus>(iPort, RMStatus::Dead)
       );
     }
-
-    // Check up on other RMs in the vicinity
-    heartbeats();
-
-    // Pick a leader!
-    startElection();
   }
 
   bool iAmPrimaryRM() { return myURequestPort == primaryURequestPort; }
@@ -226,10 +226,7 @@ public:
     lock_guard<mutex> lck(rmStatusesMut);
 
     for(auto& kv : rmStatuses) {
-      // Exclude myself
-      if(kv.second == status && kv.first != myIRequestPort){
-        RMs.push_back(kv.first);
-      }
+      if(kv.second == status){ RMs.push_back(kv.first); }
     }
 
     return RMs;
@@ -253,6 +250,8 @@ public:
       RMVote vote = RMVote(URequestPort, lastSequenceID);
       registerVote(vote);
 
+    }else if(regex_match(request, matches, reHeartbeat)) {
+
     }else if(regex_match(request, matches, reSnapRequest)) {
 
     }else if(regex_match(request, matches, reSnapResponseStart)) {
@@ -275,18 +274,15 @@ public:
       for(auto& kv:rmStatuses){ iPorts.push_back(kv.first); };
     }
 
+    RMStatus newStatus;
+
     while(true) {
       for(auto& iPort:iPorts){
-        int returnedBytes = sendPort("HEARTBEAT", iPort);
+        int returnedBytes = sendPort("HEARTBEAT\0", 13002); //iPort);
+        newStatus = returnedBytes > 0 ? RMStatus::Alive : RMStatus::Dead;
 
-        {
-          lock_guard<mutex> lck(rmStatusesMut);
-          rmStatuses[iPort] = returnedBytes > 0 ? RMStatus::Alive : RMStatus::Dead;
-        }
-
-        cerr << "Heartbeat'd " << std::to_string(iPort) << ": ";
-        if(returnedBytes > 0) cerr << "alive.\n";
-        else cerr << "dead.\n";
+        lock_guard<mutex> lck(rmStatusesMut);
+        rmStatuses[iPort] = newStatus;
       }
 
       // Relax for a bit before asking everyone again
@@ -456,17 +452,18 @@ void requestHandler(const unsigned int connfd, const unsigned int recvPort) {
   string request = readConn(connfd);
   cerr << "Received request: " << request << endl;
 
-  if(recvPort == UREQUEST_PORT){ // Request comes from the user
+  if(recvPort == society.getMyURequestPort()){ // Request comes from the user
     cerr << "Responding to the user request." << endl;
 
     if(isURequest(request)) {
       processURequest(request, connfd);
 
     }else{
-      throw std::runtime_error("Non-user request received via UREQUEST_PORT");
-    }
+      // throw std::runtime_error("Non-user request received via UREQUEST_PORT");
+      cerr << "Non-user request received via UREQUEST_PORT" << endl;
+     }
 
-  }else if(recvPort == IREQUEST_PORT){ // Request comes from another RM
+  }else if(recvPort == society.getMyIRequestPort()){ // Request comes from another RM
     cerr << "Responding to the internal request." << endl;
 
     processIRequest(request, connfd);
@@ -476,15 +473,56 @@ void requestHandler(const unsigned int connfd, const unsigned int recvPort) {
   cerr << "Finished." << endl;
 }
 
+void launchElections() {
+  society.heartbeats();
+  society.startElection();
+}
+
 void configReplication() {
-  // read topology.txt and set relevant port numbers
+  unsigned int myURequestPort = std::atoi(getenv("UREQUEST_PORT"));
+  unsigned int myIRequestPort = std::atoi(getenv("IREQUEST_PORT"));
 
-  // start heartbeatChecks as a running thread that, after HEARTBEAT_PERIOD_MS,
-  // polls everybody
+  // Ports that RMs use interally to communicate with each other
+  vector<unsigned int> iPorts;
 
-  // configure society and ledger
-  // society = ...
-  // ledger = ...
+  char* topologyPath = getenv("TOPOLOGY_PATH");
 
+  // TODO: refactor following file reader (utils.h?)
+  ifstream infile(topologyPath);
 
+  string line;
+  while(std::getline(infile, line)){
+    istringstream iss(line);
+
+    // Skip if the line is empty or starts with a '#' (comment)
+    if(!line.empty() && !startswith(line, "#")){
+      // constants and variables are split by a '='
+      int divider = line.find("=");
+
+      string constantKey = line.substr(0, divider);
+      int constantValue = stoi(line.substr(divider + 1));
+
+      // Exclude myself
+      if(constantValue != myIRequestPort){
+        iPorts.push_back(constantValue);
+      }
+    }
+  }
+
+  society.config(myURequestPort, myIRequestPort, iPorts);
+}
+
+void launch() {
+  unsigned int activePorts[] = {society.getMyURequestPort(), society.getMyIRequestPort()};
+  vector<thread> listeners;
+
+  for(auto port:activePorts){
+    const unsigned int listenfd = getListenFD(port);
+
+    listeners.push_back(
+      thread([port, listenfd] { dispatcher(port, listenfd); })
+    );
+  }
+
+  for(thread& th:listeners){ th.join(); }
 }

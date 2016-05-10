@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
+#include <stdio.h>
 #include "replication.h"
 #include "messaging.h"
 using namespace std;
@@ -121,6 +122,25 @@ void sendConn(const Message& msg, const unsigned int connfd) {
   }
 }
 
+bool isConnected(unsigned int port) {
+  // True if there's a process running on the given port
+  // run a process and create a streambuf that reads its stdout and stderr
+  FILE *in;
+	char buff[5000];
+
+  string command = "nc -z localhost " + std::to_string(port);
+	if(!(in = popen(command.c_str(), "r"))){
+		return 1;
+	}
+
+	while(fgets(buff, sizeof(buff), in)!=NULL){
+		cout << buff;
+	}
+	pclose(in);
+
+	return 0;
+}
+
 int sendPort(const string& content, const unsigned int destPort) {
   int sockfd;
   struct sockaddr_in servaddr;
@@ -132,14 +152,20 @@ int sendPort(const string& content, const unsigned int destPort) {
   }
 
   // Set up the sockaddr_in
+  memset(&servaddr, 0, sizeof(servaddr));
   servaddr.sin_family = AF_INET; // Specify the family
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Use any network card present
   servaddr.sin_port = htons(destPort);
 
-  if(connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
-    perror("Connect failed");
-    exit(1);
-  }
+  // Test if the socket is up before trying to connect to it
+  // http://pubs.opengroup.org/onlinepubs/009695399/functions/getsockopt.html
+
+  try{
+    if(connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
+      perror("Connect failed");
+      exit(1);
+    }
+  }catch(...){ cout << "NICE" << endl; }
 
   int bytes = sendConn(content, sockfd);
   close(sockfd);
@@ -175,8 +201,42 @@ void bounceRequest(const unsigned int connfd, unsigned int toPort) {
   sendConn(Message(bounceMsg), connfd);
 }
 
+int getListenFD(const int port) {
+  // start listening on the given port and return a Unix file descriptor
+  int listenfd;
+  struct sockaddr_in servaddr;
+
+  // Create the socket
+  if((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    perror("Unable to create a socket");
+    exit(1);
+  }
+
+  // Set up the sockaddr_in
+  memset(&servaddr, 0, sizeof(servaddr)); // Zero it
+  servaddr.sin_family = AF_INET; // Specify the family
+  servaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Use any network card present
+  servaddr.sin_port = htons(port);
+
+  // "Bind" that address object to our listening file descriptor
+  if(::bind(listenfd, (SA *) &servaddr, sizeof(servaddr)) == -1) {
+    perror("Unable to bind port");
+    exit(2);
+  }
+
+  // Tell the system that we are going to use this socket for
+  // listening and request a queue length
+  if(listen(listenfd, 1024) == -1) {
+    perror("Unable to listen");
+    exit(3);
+  }
+
+  return listenfd;
+}
+
 void dispatcher(const unsigned int listenerPort, const unsigned int listenfd) {
   unsigned int connfd;
+  launchElections();
 
   // Block until someone connects.
   for (;;) {

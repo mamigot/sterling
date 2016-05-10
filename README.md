@@ -1,15 +1,25 @@
 Sterling
 ========
 
-- **NYU CS3254**: Project (Part III)
+- **NYU CS3254**: Project (Part IV)
 - Miguel Amigot [m.amigot@nyu.edu](m.amigot@nyu.edu)
 
-#### _Modifications with respect to Part II_
-- Introduced multithreading to the server (see a thorough explanation below)
-- Made all server calls idempotent
-- Increased the number of data files that the backend uses to store the data (simply by modifying `config.txt` in `storage/` and `web/`)
-- Refactored (removed two unused functions and abstracted code that iterates over the data files to an iterator –see `LReader` in `filehandler.cpp`)
-- Forbid logged in users from accessing endpoints such as `login/` and `register/`
+## Replication
+_The current program does not run. I was unsuccessful in getting the RMs to communicate with each other when either is not connected to a port. Very sorry. Following is the description of what I was intending to do._
+
+Passive replication. There's a primary RM (replica manager), through which all FEs (front-ends) communicate. The primary RM responds to user requests and propagates writes and deletes throughout the rest of the RMs in an ordered manner.
+
+When an RM surfaces, it starts polling all of the other RMs in order to determine the primary. Each RM asks every RM that is active and responds within a given period of time (see `startElection()` in `replication.cpp`, line 293). Whether an RM is "active" or not is determined by a thread that continuously polls all of the other RMs (this is where my program failed) (`replication.cpp`, line 266).
+
+When an RM is asked to vote, it sends a concatenation of its latest sequence ID (every request that the primary tells the backups to implement is tagged by a sequence ID, which is a counter over all of the received requests) plus its port number. This has the characteristic of a) choosing the RM that has the latest sequence as the leader and b) if there is a tie, choosing the one with the greatest port number. (See how a vote works in the `RMVote` class in `replication.cpp`, line 150).
+
+Backup RMs only process requests onto their filesystems if they come from the primary RM. If a user contacts a backup RM with a request, the backup just sends the user a "BOUNCE" request that redirects it to the master (`replication.cpp`, line 416). This is how we ensure that a) all timestamps come from whichever the primary RM is at a given point in time and ordering. Moreover, each RM uses two ports (one for user -> RM communication and another for RM -> communication).
+
+Ordering is also integrated in the way in which the primary RM tells the backups to implement requests. Though the primary broadcasts requests to the backups as soon as it receives them, the backups simply place them in a queue, to be able to process them in an ordered manner by a separate thread. When backups process requests, they do so from their queue, which I've called a `URequestLedger` (`replication.cpp`, line 50).
+
+#### How failure is handled
+
+Recall that there is a thread that is continuously running heartbeat checks on all of the other RMs. Therefore, if the RM that was thought to be the primary goes down, its status will be "Dead" and the RM who no longer has a leader will start an election. All of the other RMs that respond to the election will cast a vote, and a decision will be made as to who the leader is. However, in the case that the existing leader in the network is alive but simply does not participate in the election (must respond within 1.5 seconds but the network may be flooded, etc.), the backup RM who might have declared another as its leader will not be doomed. That's because, whenever it receives requests that are only supposed to be sent my the leader, "BOUNCE" messages detailing that there has been a mistake in choosing the leader will be exchanged across RMs in order for them to acknowledge who the reader is.
 
 ## Configuration and testing
 The client and the server are configured and activated through `start.sh` scripts on their respective root directories. These take care of relevant environment variables and, in the case of the server's, create the text files that are used to store the application's data. Run them on e.g. different terminal windows using `. start.sh`.

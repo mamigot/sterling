@@ -15,5 +15,4 @@ bool isValidPath(const string& filePath);
 
 unsigned int getFileSize(const string& filePath);
 
-
 #endif

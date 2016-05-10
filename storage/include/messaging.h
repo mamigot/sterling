@@ -13,9 +13,6 @@ using namespace std;
 
 #define SA struct sockaddr
 
-const unsigned int UREQUEST_PORT = stoi(getenv("UREQUEST_PORT"), NULL, 10);
-const unsigned int IREQUEST_PORT = stoi(getenv("IREQUEST_PORT"), NULL, 10);
-
 // Max. size of the buffer used to transport data across servers
 const unsigned int BUFFSIZE = stoi(getenv("DATASERVER_BUFFSIZE"), NULL, 10);
 
@@ -42,6 +39,8 @@ private:
 };
 
 void dispatcher(const unsigned int listenerPort, const unsigned int listenfd);
+
+int getListenFD(const int port);
 
 int sendConn(const string& content, const unsigned int connfd);
 
