@@ -5,6 +5,7 @@
 #include <chrono>
 #include <unistd.h>
 #include <regex>
+#include <cstring>
 #include <string>
 #include <map>
 #include <queue>
@@ -40,7 +41,7 @@ enum RMStatus { Alive, Dead };
 
 class RMVote {
 public:
-  RMVote(const string& vote) : vote(vote) {
+  RMVote(const string& vote) : voteAsStr(vote) {
     // A vote will be a concatenation of the highest known sequence ID (every
     // time I receive a request, I update my sequence ID) with a machine's
     // port number. For example, if my highest known sequence is 10 and my
@@ -64,7 +65,7 @@ public:
   RMVote(unsigned int port, unsigned int lastSequenceID) : port(port),
     lastSequenceID(lastSequenceID) {
 
-    vote = std::to_string(lastSequenceID) + std::to_string(port);
+    voteAsStr = std::to_string(lastSequenceID) + std::to_string(port);
   }
 
   unsigned int getPort() const { return port; }
@@ -80,7 +81,7 @@ private:
   unsigned int lastSequenceID;
   unsigned int voteAsInt;
   string voteAsStr;
-}
+};
 
 class RMSociety {
 /*
@@ -110,7 +111,7 @@ public:
 
     /***** For now... TODO: change! *****/
     primaryURequestPort = 13002;
-    lastHeardFromPrimary = 0;
+    //lastHeardFromPrimary = 0;
   }
 
   bool iAmPrimaryRM() { return myURequestPort == primaryURequestPort; }
@@ -128,6 +129,7 @@ public:
   };
 
   vector<unsigned int> getIRequestPorts(const RMStatus& status) {
+    vector<unsigned int> RMs;
     lock_guard<mutex> lck(rmStatusesMut);
 
     for(auto& kv : rmStatuses) {
@@ -145,18 +147,18 @@ public:
     smatch matches;
 
     if(regex_match(request, matches, rePrimaryRMRequest) && !iAmPrimaryRM()) {
-      bounceRequest(connfd);
+      bounceRequest(connfd, primaryURequestPort);
 
     }else if(regex_match(request, matches, reElectionInquiry)) {
-      unsigned int IRequestPort = std::atoi(matches[1]);
+      unsigned int IRequestPort = std::atoi(matches[1].str().c_str());
       vote(IRequestPort);
 
     }else if(regex_match(request, matches, reElectionResponse)) {
-      unsigned int IRequestPort = std::atoi(matches[1]),
-        lastSequenceID = std::atoi(matches[2]),
-        URequestPort = std::atoi(matches[3]);
+      unsigned int lastSequenceID = std::atoi(matches[2].str().c_str()),
+        URequestPort = std::atoi(matches[3].str().c_str());
 
-      registerVote(RMVote(URequestPort, lastSequenceID));
+      RMVote vote = RMVote(URequestPort, lastSequenceID);
+      registerVote(vote);
 
     }else if(regex_match(request, matches, reSnapRequest)) {
 
@@ -194,9 +196,9 @@ public:
 
     // Ask every alive RM to participate in the election
     for(auto& iPort:getIRequestPorts(RMStatus::Alive)) {
-      thread([iPort] {
+      thread([&] {
 
-        string msg = myIRequestPort + "/ElectionInquiry\0";
+        string msg = std::to_string(myIRequestPort) + "/ElectionInquiry\0";
         sendPort(msg, iPort);
 
       }).detach();
@@ -205,8 +207,8 @@ public:
 
   void vote(unsigned int electionIPort) {
     // If I'm asked to participate in somebody's election
-    string fullVote = myIRequestPort + "/ElectionResponse/" + \
-      lastSequenceID + "/" + myURequestPort + "\0";
+    string fullVote = std::to_string(myIRequestPort) + "/ElectionResponse/" + \
+      std::to_string(lastSequenceID) + "/" + std::to_string(myURequestPort) + "\0";
 
     sendPort(fullVote, electionIPort);
     cerr << "Voted on " << electionIPort << "'s election: " << fullVote << endl;
@@ -220,7 +222,7 @@ public:
       // Add the vote to the queue
       {
         unique_lock<mutex> lck(votesMut);
-        votes.add(vote);
+        votes.push_back(vote);
       }
 
       if(!aliveVoter) {
@@ -233,7 +235,7 @@ public:
 
   void chooseLeader() {
     // Wait some time for the candidates to fill up before deciding
-    std::this_thread::sleep_for(std::chrono::seconds(1.5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
 
     // All votes are in (don't allow more)
     cerr << "All votes are in!" << endl;
@@ -254,7 +256,7 @@ public:
     primaryURequestPort = leader.getPort();
     aliveVoter = false;
 
-    cerr << "Elected a new leader: " + primaryURequestPort << endl;
+    cerr << "Elected a new leader: " + std::to_string(primaryURequestPort) << endl;
 
     /*** TODO: Request a snap from the leader ***/
   }
@@ -272,6 +274,7 @@ private:
   atomic<unsigned int> myIRequestPort;
 
   atomic<unsigned int> primaryURequestPort;
+  atomic<unsigned int> lastSequenceID;
   //atomic<unsigned int> lastHeardFromPrimary;
 
   // Used to elect a new leader / primaryRM
@@ -377,19 +380,13 @@ string modifyRequestAsPrimaryRM(string& request) {
   return request;
 }
 
-void bounceRequest(const unsigned int connfd) {
-  // Bounce the request via connfd and tell the user to redirect his
-  // efforts to PRIMARY_RM_PORT
-
-  string bounceMsg = "BOUNCE/" + std::to_string(society.getPrimaryURequestPort()) + "\0";
-  sendConn(Message(bounceMsg), connfd);
-}
-
 void processURequest(string& request, const unsigned int connfd) {
   // Request comes from a user
 
   // Bounce it if I'm a backup or I have other requests to attend to first
-  if(!society.iAmPrimaryRM() || ledger.size() > 0) { bounceRequest(connfd); }
+  if(!society.iAmPrimaryRM() || ledger.size() > 0) {
+    bounceRequest(connfd, society.getPrimaryURequestPort());
+  }
 
   // The primary may want to modify the raw request
   request = modifyRequestAsPrimaryRM(request);
@@ -414,7 +411,7 @@ void processIRequest(const string& request, const unsigned int connfd) {
 
   // Has to be an internal message sent from one RM to another.
   // Pass it to the society manager, who'll decide what to do.
-  society.act(request);
+  society.act(request, connfd);
 }
 
 void requestHandler(const unsigned int connfd, const unsigned int recvPort) {
