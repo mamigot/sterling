@@ -200,9 +200,11 @@ public:
       );
     }
 
-    /***** For now... TODO: change! *****/
-    primaryURequestPort = 13002;
-    //lastHeardFromPrimary = 0;
+    // Check up on other RMs in the vicinity
+    heartbeats();
+
+    // Pick a leader!
+    startElection();
   }
 
   bool iAmPrimaryRM() { return myURequestPort == primaryURequestPort; }
@@ -263,17 +265,32 @@ public:
   }
 
   void heartbeats() {
-    // Conduct heartbeats. Update rmStatuses, lastHeardFromPrimary and
-    // potentially primaryURequestPort.
+    // Conduct heartbeats
+    const unsigned int periodMs = 1500;
 
-    // Send heartbeat checks every periodMs
-    //const unsigned int periodMs = 1000;
+    // Get all neighboring RMs' ports
+    vector<unsigned int> iPorts;
+    {
+      lock_guard<mutex> lck(rmStatusesMut);
+      for(auto& kv:rmStatuses){ iPorts.push_back(kv.first); };
+    }
 
     while(true) {
-      //(hold the mutex only when we're ready to update rmStatuses...
-      // otherwise we'll have it ad infinitum)
+      for(auto& iPort:iPorts){
+        int returnedBytes = sendPort("HEARTBEAT", iPort);
 
-      // sleep after making a particular check
+        {
+          lock_guard<mutex> lck(rmStatusesMut);
+          rmStatuses[iPort] = returnedBytes > 0 ? RMStatus::Alive : RMStatus::Dead;
+        }
+
+        cerr << "Heartbeat'd " << std::to_string(iPort) << ": ";
+        if(returnedBytes > 0) cerr << "alive.\n";
+        else cerr << "dead.\n";
+      }
+
+      // Relax for a bit before asking everyone again
+      std::this_thread::sleep_for(std::chrono::milliseconds(periodMs));
     }
   }
 
