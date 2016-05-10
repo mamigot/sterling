@@ -53,4 +53,6 @@ string readConn(const unsigned int connfd);
 
 ClientSignal waitClientSignal(const unsigned int connfd);
 
+void bounceRequest(const unsigned int connfd, unsigned int toPort);
+
 #endif

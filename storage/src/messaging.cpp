@@ -167,6 +167,14 @@ ClientSignal waitClientSignal(const unsigned int connfd) {
   return ClientSignal::Unknown;
 }
 
+void bounceRequest(const unsigned int connfd, unsigned int toPort) {
+  // Bounce the request via connfd and tell the user to redirect his
+  // efforts to PRIMARY_RM_PORT
+
+  string bounceMsg = "BOUNCE/" + std::to_string(toPort) + "\0";
+  sendConn(Message(bounceMsg), connfd);
+}
+
 void dispatcher(const unsigned int listenerPort, const unsigned int listenfd) {
   unsigned int connfd;
 
